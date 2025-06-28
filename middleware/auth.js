@@ -1,0 +1,91 @@
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+
+// Middleware to verify JWT token
+const authenticateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+      return res.status(401).json({ 
+        error: 'Access token required',
+        message: 'يجب تسجيل الدخول أولاً'
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Get user from database
+    const user = await User.findById(decoded.userId).select('-password');
+    if (!user || !user.isActive) {
+      return res.status(401).json({ 
+        error: 'Invalid token',
+        message: 'الرمز غير صالح أو المستخدم غير موجود'
+      });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        error: 'Invalid token',
+        message: 'الرمز غير صالح'
+      });
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        error: 'Token expired',
+        message: 'انتهت صلاحية الرمز'
+      });
+    }
+    
+    console.error('Auth middleware error:', error);
+    res.status(500).json({ 
+      error: 'Authentication error',
+      message: 'خطأ في المصادقة'
+    });
+  }
+};
+
+// Middleware to require admin privileges
+const requireAdmin = (req, res, next) => {
+  if (!req.user.isAdmin) {
+    return res.status(403).json({ 
+      error: 'Admin access required',
+      message: 'ليس لديك صلاحيات المدير'
+    });
+  }
+  next();
+};
+
+// Middleware to check if user can access target user's data
+const canAccessUser = (req, res, next) => {
+  const targetUserId = req.params.userId || req.body.targetUserId;
+  
+  if (!targetUserId) {
+    return next(); // No target user specified, continue
+  }
+
+  // Admin can access any user's data
+  if (req.user.isAdmin) {
+    return next();
+  }
+
+  // User can only access their own data
+  if (req.user._id.toString() !== targetUserId) {
+    return res.status(403).json({ 
+      error: 'Access denied',
+      message: 'ليس لديك صلاحية لعرض هذه البيانات'
+    });
+  }
+
+  next();
+};
+
+module.exports = {
+  authenticateToken,
+  requireAdmin,
+  canAccessUser
+}; 

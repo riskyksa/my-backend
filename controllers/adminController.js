@@ -1,0 +1,298 @@
+const { validationResult } = require('express-validator');
+const User = require('../models/User');
+const DailyEntry = require('../models/DailyEntry');
+const MonthlyAdvance = require('../models/MonthlyAdvance');
+
+// Get all users (admin only)
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({ isActive: true })
+      .select('-password')
+      .sort({ username: 1 });
+
+    res.json({
+      users,
+      count: users.length
+    });
+
+  } catch (error) {
+    console.error('Get all users error:', error);
+    res.status(500).json({
+      error: 'Failed to get users',
+      message: 'فشل في جلب المستخدمين'
+    });
+  }
+};
+
+// Update user deductions (admin only)
+const updateUserDeductions = async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'بيانات غير صحيحة',
+        details: errors.array()
+      });
+    }
+
+    const { userId, deductions } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'المستخدم غير موجود'
+      });
+    }
+
+    user.deductions = deductions;
+    await user.save();
+
+    res.json({
+      message: 'تم تحديث الخصميات بنجاح',
+      user: user.toJSON()
+    });
+
+  } catch (error) {
+    console.error('Update user deductions error:', error);
+    res.status(500).json({
+      error: 'Failed to update deductions',
+      message: 'فشل في تحديث الخصميات'
+    });
+  }
+};
+
+// Update username (admin only)
+const updateUsername = async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'بيانات غير صحيحة',
+        details: errors.array()
+      });
+    }
+
+    const { userId, newUsername } = req.body;
+
+    // Check if username is already taken
+    const existingUser = await User.findOne({ 
+      username: newUsername,
+      _id: { $ne: userId }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: 'Username taken',
+        message: 'اسم المستخدم موجود بالفعل'
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'المستخدم غير موجود'
+      });
+    }
+
+    user.username = newUsername;
+    await user.save();
+
+    res.json({
+      message: 'تم تحديث اسم المستخدم بنجاح',
+      user: user.toJSON()
+    });
+
+  } catch (error) {
+    console.error('Update username error:', error);
+    res.status(500).json({
+      error: 'Failed to update username',
+      message: 'فشل في تحديث اسم المستخدم'
+    });
+  }
+};
+
+// Delete user (admin only)
+const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'المستخدم غير موجود'
+      });
+    }
+
+    if (user.isAdmin) {
+      return res.status(400).json({
+        error: 'Cannot delete admin',
+        message: 'لا يمكن حذف حساب المدير'
+      });
+    }
+
+    // Delete all user's daily entries
+    await DailyEntry.deleteMany({ userId });
+
+    // Delete all user's monthly advances
+    await MonthlyAdvance.deleteMany({ userId });
+
+    // Deactivate user instead of deleting
+    user.isActive = false;
+    await user.save();
+
+    res.json({
+      message: 'تم حذف المستخدم بنجاح'
+    });
+
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      error: 'Failed to delete user',
+      message: 'فشل في حذف المستخدم'
+    });
+  }
+};
+
+// Complete system reset (admin only)
+const completeSystemReset = async (req, res) => {
+  try {
+    const { confirmationText } = req.body;
+
+    // Verify confirmation text
+    if (confirmationText !== 'تصفير كامل') {
+      return res.status(400).json({
+        error: 'Invalid confirmation',
+        message: 'نص التأكيد غير صحيح'
+      });
+    }
+
+    const adminUserId = req.user._id;
+
+    // Delete all daily entries
+    await DailyEntry.deleteMany({});
+
+    // Delete all monthly advances
+    await MonthlyAdvance.deleteMany({});
+
+    // Deactivate all users except admin
+    await User.updateMany(
+      { _id: { $ne: adminUserId } },
+      { isActive: false }
+    );
+
+    // Reset admin deductions
+    await User.findByIdAndUpdate(adminUserId, { deductions: 0 });
+
+    res.json({
+      message: 'تم تصفير النظام بنجاح'
+    });
+
+  } catch (error) {
+    console.error('System reset error:', error);
+    res.status(500).json({
+      error: 'Failed to reset system',
+      message: 'فشل في تصفير النظام'
+    });
+  }
+};
+
+// Get system statistics (admin only)
+const getSystemStats = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments({ isActive: true });
+    const totalEntries = await DailyEntry.countDocuments();
+    const totalAdvances = await MonthlyAdvance.countDocuments();
+
+    // Get recent activity
+    const recentEntries = await DailyEntry.find()
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('userId', 'username');
+
+    // Get monthly totals
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    const monthlyEntries = await DailyEntry.find({
+      date: { $regex: `^${currentMonth}` }
+    });
+
+    const monthlyStats = {
+      totalCash: monthlyEntries.reduce((sum, entry) => sum + (entry.cashAmount || 0), 0),
+      totalNetwork: monthlyEntries.reduce((sum, entry) => sum + (entry.networkAmount || 0), 0),
+      totalPurchases: monthlyEntries.reduce((sum, entry) => sum + (entry.purchasesAmount || 0), 0),
+      totalAdvances: monthlyEntries.reduce((sum, entry) => sum + (entry.advanceAmount || 0), 0)
+    };
+
+    res.json({
+      totalUsers,
+      totalEntries,
+      totalAdvances,
+      recentEntries,
+      monthlyStats
+    });
+
+  } catch (error) {
+    console.error('Get system stats error:', error);
+    res.status(500).json({
+      error: 'Failed to get system statistics',
+      message: 'فشل في جلب إحصائيات النظام'
+    });
+  }
+};
+
+// Toggle user admin status (admin only)
+const toggleAdminStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'المستخدم غير موجود'
+      });
+    }
+
+    // Prevent removing the last admin
+    if (user.isAdmin) {
+      const adminCount = await User.countDocuments({ isAdmin: true });
+      if (adminCount <= 1) {
+        return res.status(400).json({
+          error: 'Cannot remove last admin',
+          message: 'لا يمكن إزالة المدير الأخير'
+        });
+      }
+    }
+
+    user.isAdmin = !user.isAdmin;
+    await user.save();
+
+    res.json({
+      message: user.isAdmin ? 'تم منح صلاحيات المدير' : 'تم إزالة صلاحيات المدير',
+      user: user.toJSON()
+    });
+
+  } catch (error) {
+    console.error('Toggle admin status error:', error);
+    res.status(500).json({
+      error: 'Failed to toggle admin status',
+      message: 'فشل في تغيير صلاحيات المدير'
+    });
+  }
+};
+
+module.exports = {
+  getAllUsers,
+  updateUserDeductions,
+  updateUsername,
+  deleteUser,
+  completeSystemReset,
+  getSystemStats,
+  toggleAdminStatus
+}; 
