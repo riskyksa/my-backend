@@ -205,10 +205,29 @@ const updateProfile = async (req, res) => {
 // Change password
 const changePassword = async (req, res) => {
   try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'بيانات غير صحيحة',
+        details: errors.array()
+      });
+    }
+
     const { currentPassword, newPassword } = req.body;
 
+    // Get user with password for comparison
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'المستخدم غير موجود'
+      });
+    }
+
     // Validate current password
-    const isCurrentPasswordValid = await req.user.comparePassword(currentPassword);
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
     if (!isCurrentPasswordValid) {
       return res.status(400).json({
         error: 'Invalid current password',
@@ -217,18 +236,19 @@ const changePassword = async (req, res) => {
     }
 
     // Update password
-    req.user.password = newPassword;
-    await req.user.save();
+    user.password = newPassword;
+    await user.save();
 
     res.json({
       message: 'تم تغيير كلمة المرور بنجاح'
     });
 
   } catch (error) {
-    console.error('Change password error:', error);
+    console.error('Change password error:', error, error?.stack);
     res.status(500).json({
       error: 'Failed to change password',
-      message: 'فشل في تغيير كلمة المرور'
+      message: 'فشل في تغيير كلمة المرور',
+      details: error?.message || error
     });
   }
 };
