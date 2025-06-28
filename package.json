@@ -2,12 +2,12 @@
   "name": "freelance-backend",
   "version": "1.0.0",
   "description": "Backend for freelance project with Node.js, Express, and MongoDB",
-  "main": "server.js",
+  "main": "start.js",
   "engines": {
     "node": ">=16.0.0"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "node start.js",
     "dev": "nodemon server.js",
     "test": "jest",
     "build": "echo 'No build step required'"

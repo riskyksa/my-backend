@@ -13,103 +13,70 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
-// Security middleware
-app.use(helmet({
-  contentSecurityPolicy: false,
-}));
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100
-});
-app.use(limiter);
-
-// CORS configuration
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  credentials: true
-}));
-
-// Body parsing middleware
+// Basic middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// CORS - Allow all origins for Railway
+app.use(cors({
+  origin: '*',
+  credentials: false
+}));
 
 // Create uploads directory if not exists
 const uploadPath = process.env.UPLOAD_PATH || './uploads';
 if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }
+
+// Static files
 app.use('/uploads', express.static('uploads'));
 
-// Health check endpoint
+// Health check endpoint - SIMPLE VERSION
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    message: 'Server is running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+  console.log('Health check requested');
+  res.status(200).send('OK');
 });
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.json({
+  res.json({ 
     message: 'Freelance Daily Entries API',
-    version: '1.0.0',
-    status: 'running',
-    endpoints: {
-      health: '/health',
-      apiHealth: '/api/health',
-      auth: '/api/auth',
-      dailyEntries: '/api/daily-entries',
-      admin: '/api/admin'
-    }
+    status: 'running'
   });
 });
 
-// Routes
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/daily-entries', dailyEntriesRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
-  res.status(500).json({
-    error: 'Something went wrong!',
-    message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message
-  });
-});
-
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    path: req.originalUrl,
-    availableEndpoints: ['/health', '/api/health', '/api/auth', '/api/daily-entries', '/api/admin']
-  });
+  res.status(404).json({ error: 'Route not found' });
 });
 
-// Start server
-const startServer = async () => {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
+// Start server immediately
+const PORT = process.env.PORT || 5000;
 
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
-    });
-  } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
-    process.exit(1);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
+  
+  // Connect to MongoDB after server starts
+  if (process.env.MONGODB_URI) {
+    mongoose.connect(process.env.MONGODB_URI)
+      .then(() => {
+        console.log('✅ Connected to MongoDB');
+      })
+      .catch((error) => {
+        console.error('❌ MongoDB connection error:', error);
+        // Don't exit, let server run without DB
+      });
+  } else {
+    console.log('⚠️ MONGODB_URI not set');
   }
-};
-
-startServer();
+});
 
 module.exports = app;
