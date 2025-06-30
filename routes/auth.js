@@ -23,7 +23,7 @@ const registerValidation = [
   body('username')
     .isLength({ min: 3, max: 30 })
     .withMessage('اسم المستخدم يجب أن يكون بين 3 و 30 حرف')
-    .matches(/^[a-zA-Z0-9_]+$/)
+  .matches(/^[\u0600-\u06FFa-zA-Z0-9_]+$/)
     .withMessage('اسم المستخدم يمكن أن يحتوي على أحرف وأرقام وشرطة سفلية فقط')
 ];
 
