@@ -10,10 +10,7 @@ const monthlyAdvanceSchema = new mongoose.Schema({
     type: String,
     required: true,
     validate: {
-      validator: function(v) {
-        // Validate YYYY-MM format
-        return /^\d{4}-\d{2}$/.test(v);
-      },
+      validator: v => /^\d{4}-\d{2}$/.test(v),
       message: 'YearMonth must be in YYYY-MM format'
     }
   },
@@ -26,9 +23,8 @@ const monthlyAdvanceSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes for better query performance
 monthlyAdvanceSchema.index({ userId: 1, yearMonth: 1 }, { unique: true });
 monthlyAdvanceSchema.index({ userId: 1 });
 monthlyAdvanceSchema.index({ yearMonth: 1 });
 
-module.exports = mongoose.model('MonthlyAdvance', monthlyAdvanceSchema); 
+module.exports = mongoose.model('MonthlyAdvance', monthlyAdvanceSchema);

@@ -3,13 +3,30 @@ const DailyEntry = require('../models/DailyEntry');
 const MonthlyAdvance = require('../models/MonthlyAdvance');
 const User = require('../models/User');
 
+// Helper to update advances
+const updateMonthlyAdvances = async (userId, date, advanceAmount) => {
+  try {
+    const yearMonth = date.substring(0, 7);
+    const entries = await DailyEntry.find({
+      userId,
+      date: { $regex: `^${yearMonth}` }
+    });
+
+    const total = entries.reduce((sum, entry) => sum + (entry.advanceAmount || 0), 0);
+
+    await MonthlyAdvance.findOneAndUpdate(
+      { userId, yearMonth },
+      { totalAdvances: total },
+      { upsert: true, new: true }
+    );
+  } catch (err) {
+    console.error('Monthly advance update error:', err);
+    throw err;
+  }
+};
+
 exports.createDailyEntry = async (req, res) => {
   try {
-    // Debug logging
-    console.log('=== [CREATE DAILY ENTRY] ===');
-    console.log('Body:', req.body);
-    console.log('Files:', req.files);
-
     const {
       date,
       cashAmount,
@@ -22,15 +39,11 @@ exports.createDailyEntry = async (req, res) => {
 
     const userId = targetUserId || req.user._id;
 
-    // Validation
     if (!date || !userId) {
       return res.status(400).json({
         error: 'Missing required fields',
         message: 'الحقول المطلوبة ناقصة',
-        debug: {
-          date,
-          userId
-        }
+        debug: { date, userId }
       });
     }
 
@@ -69,7 +82,6 @@ exports.createDailyEntry = async (req, res) => {
     });
   }
 };
-// ...existing code...
 
 exports.getDailyEntries = async (req, res) => {
   try {
@@ -91,24 +103,17 @@ exports.getDailyEntries = async (req, res) => {
     res.status(500).json({ error: 'Failed to get daily entries' });
   }
 };
-// Helper to update advances
-const updateMonthlyAdvances = async (userId, date, advanceAmount) => {
+
+exports.getMonthlyAdvances = async (req, res) => {
   try {
-    const yearMonth = date.substring(0, 7);
-    const entries = await DailyEntry.find({
-      userId,
-      date: { $regex: `^${yearMonth}` }
-    });
-
-    const total = entries.reduce((sum, entry) => sum + (entry.advanceAmount || 0), 0);
-
-    await MonthlyAdvance.findOneAndUpdate(
-      { userId, yearMonth },
-      { totalAdvances: total },
-      { upsert: true, new: true }
-    );
-  } catch (err) {
-    console.error('Monthly advance update error:', err);
-    throw err;
+    const { yearMonth, userId } = req.query;
+    if (!yearMonth || !userId) {
+      return res.status(400).json({ message: 'yearMonth and userId are required' });
+    }
+    const advances = await MonthlyAdvance.find({ userId, yearMonth });
+    res.json({ advances });
+  } catch (error) {
+    console.error('Get monthly advances error:', error);
+    res.status(500).json({ message: 'Failed to get monthly advances' });
   }
 };
