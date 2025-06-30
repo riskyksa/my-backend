@@ -3,7 +3,7 @@ const { body, query } = require('express-validator');
 const { authenticateToken, canAccessUser } = require('../middleware/auth');
 const { uploadMultipleFiles } = require('../middleware/upload');
 const {
-  createDailyEntry
+  createDailyEntry,getDailyEntries
 } = require('../controllers/dailyEntriesController');
 
 const router = express.Router();
@@ -17,6 +17,7 @@ const entryValidation = [
     .withMessage('تأكد من صيغة التاريخ (YYYY-MM-DD)'),
   body('targetUserId').optional().isMongoId().withMessage('معرف المستخدم غير صالح')
 ];
+router.get('/', canAccessUser, getDailyEntries); // <-- add this line
 
 router.post('/create', entryValidation, canAccessUser, uploadMultipleFiles, createDailyEntry);
 

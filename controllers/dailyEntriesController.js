@@ -69,7 +69,28 @@ exports.createDailyEntry = async (req, res) => {
     });
   }
 };
+// ...existing code...
 
+exports.getDailyEntries = async (req, res) => {
+  try {
+    const { year, month, userId } = req.query;
+    const filter = {};
+
+    if (userId) filter.userId = userId;
+    if (year && month) {
+      const monthStr = String(month).padStart(2, '0');
+      filter.date = { $regex: `^${year}-${monthStr}` };
+    } else if (year) {
+      filter.date = { $regex: `^${year}-` };
+    }
+
+    const entries = await DailyEntry.find(filter).sort({ date: 1 });
+    res.json({ entries });
+  } catch (error) {
+    console.error('Get daily entries error:', error);
+    res.status(500).json({ error: 'Failed to get daily entries' });
+  }
+};
 // Helper to update advances
 const updateMonthlyAdvances = async (userId, date, advanceAmount) => {
   try {
