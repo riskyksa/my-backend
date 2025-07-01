@@ -58,10 +58,11 @@ exports.createDailyEntry = async (req, res) => {
       advanceAmount: parseFloat(advanceAmount) || 0,
       notes: notes || '',
       attachments: req.files?.map(file => ({
-        filename: file.originalname,
+        filename: file.filename, // ← استخدم اسم الملف الفعلي
         path: file.path,
         mimetype: file.mimetype,
-        size: file.size
+        size: file.size,
+        originalName: file.originalname // (اختياري) للاحتفاظ بالاسم الأصلي
       })) || []
     });
 
