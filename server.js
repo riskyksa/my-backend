@@ -29,7 +29,7 @@ if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }
 
-// Static files
+// أضف هذا السطر قبل تعريف الراوتات الأخرى
 app.use('/uploads', express.static('uploads'));
 
 // Health check endpoint - SIMPLE VERSION
