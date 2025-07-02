@@ -423,6 +423,7 @@ const getAdminSummary = async (req, res) => {
     });
     // finalize user summary
     const usersSummary = Object.values(userMap).map(u => {
+      u.totalAdvances = u.totalAdvances || 0;
       u.totalRemaining = u.totalAmount - u.totalPurchases - u.deductions;
       u.activeDays = u.activeDaysSet.size;
       delete u.activeDaysSet;
@@ -434,7 +435,7 @@ const getAdminSummary = async (req, res) => {
       totalCash: entries.reduce((sum, e) => sum + (e.cashAmount || 0), 0),
       totalNetwork: entries.reduce((sum, e) => sum + (e.networkAmount || 0), 0),
       totalPurchases: entries.reduce((sum, e) => sum + (e.purchasesAmount || 0), 0),
-      totalAdvances: entries.reduce((sum, e) => sum + (e.advanceAmount || 0), 0),
+      totalAdvances: entries.reduce((sum, e) => sum + (e.advanceAmount || 0), 0) || 0,
     };
     totals.totalGross = totals.totalCash + totals.totalNetwork;
     totals.totalNet = totals.totalGross - totals.totalPurchases - totals.totalAdvances;
