@@ -118,3 +118,17 @@ exports.getMonthlyAdvances = async (req, res) => {
     res.status(500).json({ message: 'Failed to get monthly advances' });
   }
 };
+
+exports.deleteAttachment = async (req, res) => {
+  try {
+    const { entryId, attachmentId } = req.params;
+    const entry = await DailyEntry.findById(entryId);
+    if (!entry) return res.status(404).json({ message: 'المدخل غير موجود' });
+
+    entry.attachments = entry.attachments.filter(att => att._id.toString() !== attachmentId);
+    await entry.save();
+    res.json({ message: 'تم حذف الصورة بنجاح' });
+  } catch (error) {
+    res.status(500).json({ message: 'خطأ أثناء حذف الصورة' });
+  }
+};

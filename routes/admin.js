@@ -8,7 +8,9 @@ const {
   deleteUser,
   completeSystemReset,
   getSystemStats,
-  toggleAdminStatus
+  toggleAdminStatus,
+  getMonthlySummary,
+  resetDataOnly
 } = require('../controllers/adminController');
 
 const router = express.Router();
@@ -52,5 +54,7 @@ router.delete('/users/:userId', deleteUser);
 router.post('/system-reset', systemResetValidation, completeSystemReset);
 router.get('/stats', getSystemStats);
 router.put('/users/:userId/admin-status', toggleAdminStatus);
+router.get('/monthly-summary', getMonthlySummary);
+router.post('/reset-data', resetDataOnly);
 
-module.exports = router; 
+module.exports = router;

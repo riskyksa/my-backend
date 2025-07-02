@@ -287,6 +287,75 @@ const toggleAdminStatus = async (req, res) => {
   }
 };
 
+// Get monthly summary (admin only)
+const getMonthlySummary = async (req, res) => {
+  const { year, month } = req.query;
+  // اجلب كل DailyEntry لهذا الشهر
+  const monthStr = String(month).padStart(2, '0');
+  const entries = await require('../models/DailyEntry').find({
+    date: { $regex: `^${year}-${monthStr}` }
+  });
+
+  // ملخص يومي
+  const dailySummary = {};
+  entries.forEach(entry => {
+    if (!dailySummary[entry.date]) {
+      dailySummary[entry.date] = {
+        totalCash: 0, totalNetwork: 0, totalPurchases: 0, totalAdvances: 0, totalAmount: 0, totalRemaining: 0, entriesCount: 0
+      };
+    }
+    dailySummary[entry.date].totalCash += entry.cashAmount || 0;
+    dailySummary[entry.date].totalNetwork += entry.networkAmount || 0;
+    dailySummary[entry.date].totalPurchases += entry.purchasesAmount || 0;
+    dailySummary[entry.date].totalAdvances += entry.advanceAmount || 0;
+    dailySummary[entry.date].totalAmount += (entry.cashAmount || 0) + (entry.networkAmount || 0);
+    dailySummary[entry.date].totalRemaining += ((entry.cashAmount || 0) + (entry.networkAmount || 0)) - (entry.purchasesAmount || 0);
+    dailySummary[entry.date].entriesCount += 1;
+  });
+
+  // ملخص المستخدمين
+  const users = await require('../models/User').find({});
+  const usersSummary = users.map(user => {
+    const userEntries = entries.filter(e => e.userId.toString() === user._id.toString());
+    const totalCash = userEntries.reduce((sum, e) => sum + (e.cashAmount || 0), 0);
+    const totalNetwork = userEntries.reduce((sum, e) => sum + (e.networkAmount || 0), 0);
+    const totalPurchases = userEntries.reduce((sum, e) => sum + (e.purchasesAmount || 0), 0);
+    const totalAdvances = userEntries.reduce((sum, e) => sum + (e.advanceAmount || 0), 0);
+    const totalAmount = totalCash + totalNetwork;
+    const totalRemaining = totalAmount - totalPurchases - (user.deductions || 0);
+    const activeDays = userEntries.length;
+    return {
+      userId: user._id,
+      username: user.username,
+      isAdmin: user.isAdmin,
+      totalCash,
+      totalNetwork,
+      totalPurchases,
+      totalAdvances,
+      totalAmount,
+      deductions: user.deductions || 0,
+      totalRemaining,
+      activeDays
+    };
+  });
+
+  res.json({
+    dailySummary: Object.entries(dailySummary).map(([date, data]) => ({ date, ...data })),
+    usersSummary
+  });
+};
+
+// Reset data only (admin only)
+const resetDataOnly = async (req, res) => {
+  const { confirmationText } = req.body;
+  if (confirmationText !== 'تصفير البيانات') {
+    return res.status(400).json({ message: 'كلمة التأكيد غير صحيحة' });
+  }
+  await require('../models/DailyEntry').deleteMany({});
+  await require('../models/MonthlyAdvance').deleteMany({});
+  res.json({ message: 'تم تصفير البيانات المالية بنجاح' });
+};
+
 module.exports = {
   getAllUsers,
   updateUserDeductions,
@@ -294,5 +363,7 @@ module.exports = {
   deleteUser,
   completeSystemReset,
   getSystemStats,
-  toggleAdminStatus
-}; 
+  toggleAdminStatus,
+  getMonthlySummary,
+  resetDataOnly
+};
