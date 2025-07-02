@@ -473,7 +473,7 @@ module.exports = {
   getMonthlySummary,
   resetDataOnly,
   getAdminSummary,
-  getUsersMonthlyTotals,
-  deleteAllEntriesForUser,
-  getUserSummary
+  getUsersMonthlyTotals: exports.getUsersMonthlyTotals,
+  deleteAllEntriesForUser: exports.deleteAllEntriesForUser,
+  getUserSummary: exports.getUserSummary
 };
