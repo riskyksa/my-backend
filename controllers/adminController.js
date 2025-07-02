@@ -356,6 +356,112 @@ const resetDataOnly = async (req, res) => {
   res.json({ message: 'تم تصفير البيانات المالية بنجاح' });
 };
 
+// ملخص شامل للإدارة (dailySummary, usersSummary, totals)
+const getAdminSummary = async (req, res) => {
+  try {
+    const { year, month } = req.query;
+    if (!year || !month) {
+      return res.status(400).json({ message: 'year and month are required' });
+    }
+    const monthStr = String(month).padStart(2, '0');
+    const dateRegex = new RegExp(`^${year}-${monthStr}`);
+
+    // جلب جميع المدخلات لهذا الشهر
+    const entries = await require('../models/DailyEntry').find({ date: { $regex: dateRegex } });
+
+    // dailySummary: لكل يوم
+    const dailyMap = {};
+    entries.forEach(entry => {
+      if (!dailyMap[entry.date]) {
+        dailyMap[entry.date] = {
+          date: entry.date,
+          totalCash: 0,
+          totalNetwork: 0,
+          totalPurchases: 0,
+          totalAdvances: 0,
+        };
+      }
+      dailyMap[entry.date].totalCash += entry.cashAmount || 0;
+      dailyMap[entry.date].totalNetwork += entry.networkAmount || 0;
+      dailyMap[entry.date].totalPurchases += entry.purchasesAmount || 0;
+      dailyMap[entry.date].totalAdvances += entry.advanceAmount || 0;
+    });
+    const dailySummary = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+
+    // usersSummary: لكل مستخدم
+    const userMap = {};
+    entries.forEach(entry => {
+      if (!userMap[entry.userId]) {
+        userMap[entry.userId] = {
+          userId: entry.userId,
+          totalCash: 0,
+          totalNetwork: 0,
+          totalPurchases: 0,
+          totalAdvances: 0,
+        };
+      }
+      userMap[entry.userId].totalCash += entry.cashAmount || 0;
+      userMap[entry.userId].totalNetwork += entry.networkAmount || 0;
+      userMap[entry.userId].totalPurchases += entry.purchasesAmount || 0;
+      userMap[entry.userId].totalAdvances += entry.advanceAmount || 0;
+    });
+    const usersSummary = Object.values(userMap);
+
+    // totals
+    const totals = {
+      totalCash: entries.reduce((sum, e) => sum + (e.cashAmount || 0), 0),
+      totalNetwork: entries.reduce((sum, e) => sum + (e.networkAmount || 0), 0),
+      totalPurchases: entries.reduce((sum, e) => sum + (e.purchasesAmount || 0), 0),
+      totalAdvances: entries.reduce((sum, e) => sum + (e.advanceAmount || 0), 0),
+    };
+    totals.totalGross = totals.totalCash + totals.totalNetwork;
+    totals.totalNet = totals.totalGross - totals.totalPurchases - totals.totalAdvances;
+
+    res.json({ dailySummary, usersSummary, totals });
+  } catch (error) {
+    console.error('getAdminSummary error:', error);
+    res.status(500).json({ message: 'Failed to get admin summary' });
+  }
+};
+
+exports.getUsersMonthlyTotals = async (req, res) => {
+  const { year, month } = req.query;
+  if (!year || !month) return res.status(400).json({ error: 'year and month required' });
+  const monthStr = String(month).padStart(2, '0');
+  const dateRegex = new RegExp(`^${year}-${monthStr}`);
+  const entries = await DailyEntry.find({ date: { $regex: dateRegex } });
+  const userTotals = {};
+  entries.forEach(e => {
+    if (!userTotals[e.userId]) userTotals[e.userId] = 0;
+    userTotals[e.userId] += (e.cashAmount || 0) + (e.networkAmount || 0);
+  });
+  res.json(userTotals);
+};
+
+exports.deleteAllEntriesForUser = async (req, res) => {
+  const { userId } = req.params;
+  await DailyEntry.deleteMany({ userId });
+  res.json({ message: 'تم حذف جميع المدخلات' });
+};
+
+exports.getUserSummary = async (req, res) => {
+  const { userId, year, month } = req.query;
+  const monthStr = String(month).padStart(2, '0');
+  const dateRegex = new RegExp(`^${year}-${monthStr}`);
+  const entries = await DailyEntry.find({ userId, date: { $regex: dateRegex } });
+  let totalCash = 0, totalNetwork = 0, totalPurchases = 0, totalAdvances = 0;
+  entries.forEach(e => {
+    totalCash += e.cashAmount || 0;
+    totalNetwork += e.networkAmount || 0;
+    totalPurchases += e.purchasesAmount || 0;
+    totalAdvances += e.advanceAmount || 0;
+  });
+  const user = await require('../models/User').findById(userId);
+  const deductions = user?.deductions || 0;
+  const remaining = (totalCash + totalNetwork) - totalPurchases - deductions;
+  res.json({ totalCash, totalNetwork, totalPurchases, totalAdvances, deductions, remaining });
+};
+
 module.exports = {
   getAllUsers,
   updateUserDeductions,
@@ -365,5 +471,9 @@ module.exports = {
   getSystemStats,
   toggleAdminStatus,
   getMonthlySummary,
-  resetDataOnly
+  resetDataOnly,
+  getAdminSummary,
+  getUsersMonthlyTotals,
+  deleteAllEntriesForUser,
+  getUserSummary
 };

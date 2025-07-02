@@ -10,7 +10,11 @@ const {
   getSystemStats,
   toggleAdminStatus,
   getMonthlySummary,
-  resetDataOnly
+  resetDataOnly,
+  getAdminSummary,
+  getUsersMonthlyTotals,
+  deleteAllEntriesForUser,
+  getUserSummary
 } = require('../controllers/adminController');
 
 const router = express.Router();
@@ -56,5 +60,9 @@ router.get('/stats', getSystemStats);
 router.put('/users/:userId/admin-status', toggleAdminStatus);
 router.get('/monthly-summary', getMonthlySummary);
 router.post('/reset-data', resetDataOnly);
+router.get('/summary', getAdminSummary);
+router.get('/users-monthly-totals', getUsersMonthlyTotals);
+router.delete('/user-entries/:userId', deleteAllEntriesForUser);
+router.get('/user-summary', getUserSummary);
 
 module.exports = router;
