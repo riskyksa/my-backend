@@ -132,3 +132,21 @@ exports.deleteAttachment = async (req, res) => {
     res.status(500).json({ message: 'خطأ أثناء حذف الصورة' });
   }
 };
+
+// حذف مدخل كامل
+exports.deleteDailyEntry = async (req, res) => {
+  try {
+    const { entryId } = req.params;
+    const entry = await DailyEntry.findById(entryId);
+    if (!entry) {
+      return res.status(404).json({ message: 'المدخل غير موجود' });
+    }
+    // (اختياري) حذف ملفات الصور من السيرفر إذا كنت تخزنها فعليًا
+    // مثال: entry.attachments.forEach(att => fs.unlinkSync(att.path));
+    await DailyEntry.findByIdAndDelete(entryId);
+    res.json({ message: 'تم حذف المدخل بنجاح' });
+  } catch (error) {
+    console.error('Error deleting daily entry:', error);
+    res.status(500).json({ message: 'خطأ أثناء حذف المدخل' });
+  }
+};

@@ -25,4 +25,7 @@ router.post('/create', entryValidation, canAccessUser, uploadMultipleFiles, crea
 // ✅ إصلاح صلاحية حذف المرفقات: فقط المدير أو صاحب المدخل يمكنه الحذف
 router.delete('/:entryId/attachments/:attachmentId', deleteAttachment);
 
+// إضافة راوت حذف مدخل كامل
+router.delete('/:entryId', require('../controllers/dailyEntriesController').deleteDailyEntry);
+
 module.exports = router;
