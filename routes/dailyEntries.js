@@ -23,21 +23,6 @@ router.get('/monthly-advances', canAccessUser, getMonthlyAdvances);
 router.post('/create', entryValidation, canAccessUser, uploadMultipleFiles, createDailyEntry);
 
 // ✅ إصلاح صلاحية حذف المرفقات: فقط المدير أو صاحب المدخل يمكنه الحذف
-router.delete('/:entryId/attachments/:attachmentId', async (req, res, next) => {
-  try {
-    const DailyEntry = require('../models/DailyEntry');
-    const entry = await DailyEntry.findById(req.params.entryId);
-    if (!entry) return res.status(404).json({ message: 'المدخل غير موجود' });
-
-    // فقط المدير أو صاحب المدخل يمكنه الحذف
-    if (!req.user.isAdmin && entry.userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'غير مصرح لك بحذف هذا المرفق' });
-    }
-
-    next();
-  } catch (err) {
-    res.status(500).json({ message: 'خطأ أثناء التحقق من الصلاحية' });
-  }
-}, deleteAttachment);
+router.delete('/:entryId/attachments/:attachmentId', deleteAttachment);
 
 module.exports = router;
