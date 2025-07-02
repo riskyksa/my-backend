@@ -150,3 +150,26 @@ exports.deleteDailyEntry = async (req, res) => {
     res.status(500).json({ message: 'خطأ أثناء حذف المدخل' });
   }
 };
+
+// حذف جميع المدخلات لمستخدم معين
+exports.deleteAllEntriesForUser = async (req, res) => {
+  try {
+    const userId = req.params.userId || req.body.userId;
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+    // (اختياري) حذف ملفات الصور من السيرفر
+    /*
+    const entries = await DailyEntry.find({ userId });
+    entries.forEach(entry => {
+      entry.attachments?.forEach(att => {
+        // fs.unlinkSync(att.path); // إذا أردت حذف الملف فعلياً
+      });
+    });
+    */
+    await DailyEntry.deleteMany({ userId });
+    res.json({ message: 'تم حذف جميع المدخلات للمستخدم بنجاح' });
+  } catch (error) {
+    res.status(500).json({ message: 'خطأ أثناء حذف جميع المدخلات' });
+  }
+};

@@ -28,4 +28,7 @@ router.delete('/:entryId/attachments/:attachmentId', deleteAttachment);
 // إضافة راوت حذف مدخل كامل
 router.delete('/:entryId', require('../controllers/dailyEntriesController').deleteDailyEntry);
 
+// حذف جميع المدخلات لمستخدم معين
+router.delete('/user/:userId/all-entries', require('../controllers/dailyEntriesController').deleteAllEntriesForUser);
+
 module.exports = router;

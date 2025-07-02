@@ -379,33 +379,55 @@ const getAdminSummary = async (req, res) => {
           totalNetwork: 0,
           totalPurchases: 0,
           totalAdvances: 0,
+          totalAmount: 0,
+          totalRemaining: 0,
+          entriesCount: 0
         };
       }
       dailyMap[entry.date].totalCash += entry.cashAmount || 0;
       dailyMap[entry.date].totalNetwork += entry.networkAmount || 0;
       dailyMap[entry.date].totalPurchases += entry.purchasesAmount || 0;
       dailyMap[entry.date].totalAdvances += entry.advanceAmount || 0;
+      dailyMap[entry.date].totalAmount += (entry.cashAmount || 0) + (entry.networkAmount || 0);
+      dailyMap[entry.date].totalRemaining += ((entry.cashAmount || 0) + (entry.networkAmount || 0)) - (entry.purchasesAmount || 0);
+      dailyMap[entry.date].entriesCount += 1;
     });
     const dailySummary = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
 
     // usersSummary: لكل مستخدم
+    const users = await require('../models/User').find({});
     const userMap = {};
     entries.forEach(entry => {
       if (!userMap[entry.userId]) {
+        const user = users.find(u => u._id.toString() === entry.userId.toString());
         userMap[entry.userId] = {
           userId: entry.userId,
+          username: user?.username || '',
+          isAdmin: user?.isAdmin || false,
+          deductions: user?.deductions || 0,
           totalCash: 0,
           totalNetwork: 0,
           totalPurchases: 0,
           totalAdvances: 0,
+          totalAmount: 0,
+          totalRemaining: 0,
+          activeDaysSet: new Set()
         };
       }
       userMap[entry.userId].totalCash += entry.cashAmount || 0;
       userMap[entry.userId].totalNetwork += entry.networkAmount || 0;
       userMap[entry.userId].totalPurchases += entry.purchasesAmount || 0;
       userMap[entry.userId].totalAdvances += entry.advanceAmount || 0;
+      userMap[entry.userId].totalAmount += (entry.cashAmount || 0) + (entry.networkAmount || 0);
+      userMap[entry.userId].activeDaysSet.add(entry.date);
     });
-    const usersSummary = Object.values(userMap);
+    // finalize user summary
+    const usersSummary = Object.values(userMap).map(u => {
+      u.totalRemaining = u.totalAmount - u.totalPurchases - u.deductions;
+      u.activeDays = u.activeDaysSet.size;
+      delete u.activeDaysSet;
+      return u;
+    });
 
     // totals
     const totals = {
