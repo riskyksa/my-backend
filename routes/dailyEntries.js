@@ -31,4 +31,7 @@ router.delete('/:entryId', require('../controllers/dailyEntriesController').dele
 // حذف جميع المدخلات لمستخدم معين
 router.delete('/user/:userId/all-entries', require('../controllers/dailyEntriesController').deleteAllEntriesForUser);
 
+// إضافة راوت التعديل مع دعم رفع الملفات
+router.put('/:entryId', uploadMultipleFiles, require('../controllers/dailyEntriesController').updateDailyEntry);
+
 module.exports = router;

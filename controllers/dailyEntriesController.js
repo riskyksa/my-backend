@@ -173,3 +173,39 @@ exports.deleteAllEntriesForUser = async (req, res) => {
     res.status(500).json({ message: 'خطأ أثناء حذف جميع المدخلات' });
   }
 };
+
+// تحديث مدخل يومي مع دعم رفع صور جديدة
+exports.updateDailyEntry = async (req, res) => {
+  try {
+    const { entryId } = req.params;
+    const entry = await DailyEntry.findById(entryId);
+    if (!entry) {
+      return res.status(404).json({ message: 'المدخل غير موجود' });
+    }
+    // تحديث الحقول الأساسية
+    if (req.body.cashAmount !== undefined) entry.cashAmount = parseFloat(req.body.cashAmount) || 0;
+    if (req.body.networkAmount !== undefined) entry.networkAmount = parseFloat(req.body.networkAmount) || 0;
+    if (req.body.purchasesAmount !== undefined) entry.purchasesAmount = parseFloat(req.body.purchasesAmount) || 0;
+    if (req.body.advanceAmount !== undefined) entry.advanceAmount = parseFloat(req.body.advanceAmount) || 0;
+    if (req.body.notes !== undefined) entry.notes = req.body.notes;
+    if (req.body.date) entry.date = req.body.date.includes('T') ? req.body.date.split('T')[0] : req.body.date;
+
+    // إضافة مرفقات جديدة (لا تحذف القديمة)
+    if (req.files && req.files.length > 0) {
+      const newAttachments = req.files.map(file => ({
+        filename: file.filename,
+        path: file.path,
+        mimetype: file.mimetype,
+        size: file.size,
+        originalName: file.originalname
+      }));
+      entry.attachments = [...entry.attachments, ...newAttachments];
+    }
+
+    await entry.save();
+    res.json({ message: 'تم تحديث المدخل بنجاح', entry });
+  } catch (error) {
+    console.error('Error updating daily entry:', error);
+    res.status(500).json({ message: 'حدث خطأ أثناء تحديث المدخل' });
+  }
+};
