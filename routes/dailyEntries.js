@@ -22,16 +22,12 @@ router.get('/', canAccessUser, getDailyEntries);
 router.get('/monthly-advances', canAccessUser, getMonthlyAdvances);
 router.post('/create', entryValidation, canAccessUser, uploadMultipleFiles, createDailyEntry);
 
-// ✅ إصلاح صلاحية حذف المرفقات: فقط المدير أو صاحب المدخل يمكنه الحذف
 router.delete('/:entryId/attachments/:attachmentId', deleteAttachment);
 
-// إضافة راوت حذف مدخل كامل
 router.delete('/:entryId', require('../controllers/dailyEntriesController').deleteDailyEntry);
 
-// حذف جميع المدخلات لمستخدم معين
 router.delete('/user/:userId/all-entries', require('../controllers/dailyEntriesController').deleteAllEntriesForUser);
 
-// إضافة راوت التعديل مع دعم رفع الملفات
 router.put('/:entryId', uploadMultipleFiles, require('../controllers/dailyEntriesController').updateDailyEntry);
 
 module.exports = router;

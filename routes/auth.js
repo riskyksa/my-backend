@@ -11,7 +11,6 @@ const {
 
 const router = express.Router();
 
-// Validation rules
 const registerValidation = [
   body('email')
     .isEmail()
@@ -60,7 +59,6 @@ const changePasswordValidation = [
     .withMessage('كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل')
 ];
 
-// Routes
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
 router.get('/profile', authenticateToken, getProfile);

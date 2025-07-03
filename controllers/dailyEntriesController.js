@@ -2,8 +2,9 @@ const { validationResult } = require('express-validator');
 const DailyEntry = require('../models/DailyEntry');
 const MonthlyAdvance = require('../models/MonthlyAdvance');
 const User = require('../models/User');
+const fs = require('fs');
+const path = require('path');
 
-// Helper to update advances
 const updateMonthlyAdvances = async (userId, date, advanceAmount) => {
   try {
     const yearMonth = date.substring(0, 7);
@@ -58,11 +59,11 @@ exports.createDailyEntry = async (req, res) => {
       advanceAmount: parseFloat(advanceAmount) || 0,
       notes: notes || '',
       attachments: req.files?.map(file => ({
-        filename: file.filename, // ← استخدم اسم الملف الفعلي
+        filename: file.filename,
         path: file.path,
         mimetype: file.mimetype,
         size: file.size,
-        originalName: file.originalname // (اختياري) للاحتفاظ بالاسم الأصلي
+        originalName: file.originalname
       })) || []
     });
 
@@ -125,6 +126,17 @@ exports.deleteAttachment = async (req, res) => {
     const entry = await DailyEntry.findById(entryId);
     if (!entry) return res.status(404).json({ message: 'المدخل غير موجود' });
 
+    const attachment = entry.attachments.find(att => att._id.toString() === attachmentId);
+    if (!attachment) return res.status(404).json({ message: 'المرفق غير موجود' });
+
+    if (attachment.path && fs.existsSync(attachment.path)) {
+      try {
+        fs.unlinkSync(attachment.path);
+      } catch (err) {
+        console.error('خطأ أثناء حذف الملف من السيرفر:', err);
+      }
+    }
+
     entry.attachments = entry.attachments.filter(att => att._id.toString() !== attachmentId);
     await entry.save();
     res.json({ message: 'تم حذف الصورة بنجاح' });
@@ -141,9 +153,7 @@ exports.deleteDailyEntry = async (req, res) => {
     if (!entry) {
       return res.status(404).json({ message: 'المدخل غير موجود' });
     }
-    // (اختياري) حذف ملفات الصور من السيرفر إذا كنت تخزنها فعليًا
-    // مثال: entry.attachments.forEach(att => fs.unlinkSync(att.path));
-    await DailyEntry.findByIdAndDelete(entryId);
+     await DailyEntry.findByIdAndDelete(entryId);
     res.json({ message: 'تم حذف المدخل بنجاح' });
   } catch (error) {
     console.error('Error deleting daily entry:', error);
@@ -151,7 +161,6 @@ exports.deleteDailyEntry = async (req, res) => {
   }
 };
 
-// حذف جميع المدخلات لمستخدم معين
 exports.deleteAllEntriesForUser = async (req, res) => {
   try {
     const userId = req.params.userId || req.body.userId;
@@ -174,7 +183,6 @@ exports.deleteAllEntriesForUser = async (req, res) => {
   }
 };
 
-// تحديث مدخل يومي مع دعم رفع صور جديدة
 exports.updateDailyEntry = async (req, res) => {
   try {
     const { entryId } = req.params;
@@ -182,7 +190,6 @@ exports.updateDailyEntry = async (req, res) => {
     if (!entry) {
       return res.status(404).json({ message: 'المدخل غير موجود' });
     }
-    // تحديث الحقول الأساسية
     if (req.body.cashAmount !== undefined) entry.cashAmount = parseFloat(req.body.cashAmount) || 0;
     if (req.body.networkAmount !== undefined) entry.networkAmount = parseFloat(req.body.networkAmount) || 0;
     if (req.body.purchasesAmount !== undefined) entry.purchasesAmount = parseFloat(req.body.purchasesAmount) || 0;
@@ -190,7 +197,6 @@ exports.updateDailyEntry = async (req, res) => {
     if (req.body.notes !== undefined) entry.notes = req.body.notes;
     if (req.body.date) entry.date = req.body.date.includes('T') ? req.body.date.split('T')[0] : req.body.date;
 
-    // إضافة مرفقات جديدة (لا تحذف القديمة)
     if (req.files && req.files.length > 0) {
       const newAttachments = req.files.map(file => ({
         filename: file.filename,

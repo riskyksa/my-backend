@@ -19,11 +19,9 @@ const {
 
 const router = express.Router();
 
-// Apply authentication and admin check to all routes
 router.use(authenticateToken);
 router.use(requireAdmin);
 
-// Validation rules
 const updateDeductionsValidation = [
   body('userId')
     .isMongoId()
@@ -50,7 +48,7 @@ const systemResetValidation = [
     .withMessage('نص التأكيد غير صحيح')
 ];
 
-// Routes
+
 router.get('/users', getAllUsers);
 router.put('/users/deductions', updateDeductionsValidation, updateUserDeductions);
 router.put('/users/username', updateUsernameValidation, updateUsername);

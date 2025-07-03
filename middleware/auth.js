@@ -1,11 +1,11 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Middleware to verify JWT token
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const token = authHeader && authHeader.split(' ')[1]; 
+    // Bearer TOKEN
 
     if (!token) {
       return res.status(401).json({ 
@@ -16,7 +16,6 @@ const authenticateToken = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Get user from database
     const user = await User.findById(decoded.userId).select('-password');
     if (!user || !user.isActive) {
       return res.status(401).json({ 
@@ -49,7 +48,6 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// Middleware to require admin privileges
 const requireAdmin = (req, res, next) => {
   if (!req.user.isAdmin) {
     return res.status(403).json({ 
@@ -60,7 +58,6 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-// Middleware to check if user can access target user's data
 const canAccessUser = (req, res, next) => {
   const targetUserId = req.params.userId || req.body.targetUserId;
   
@@ -68,12 +65,10 @@ const canAccessUser = (req, res, next) => {
     return next(); // No target user specified, continue
   }
 
-  // Admin can access any user's data
   if (req.user.isAdmin) {
     return next();
   }
 
-  // User can only access their own data
   if (req.user._id.toString() !== targetUserId) {
     return res.status(403).json({ 
       error: 'Access denied',

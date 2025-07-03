@@ -2,28 +2,23 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure uploads directory exists
 const uploadsDir = process.env.UPLOAD_PATH || './uploads';
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
-    // Generate unique filename with timestamp
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
     cb(null, file.fieldname + '-' + uniqueSuffix + ext);
   }
 });
 
-// File filter function
 const fileFilter = (req, file, cb) => {
-  // Allow images and documents
   const allowedTypes = [
     'image/jpeg',
     'image/jpg',
@@ -43,23 +38,19 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
     fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, // 5MB default
-    files: 5 // Maximum 5 files per request
+    files: 5 
   }
 });
 
-// Single file upload middleware
 const uploadSingle = upload.single('file');
 
-// Multiple files upload middleware
 const uploadMultiple = upload.array('files', 5);
 
-// Wrapper for single file upload with error handling
 const uploadSingleFile = (req, res, next) => {
   uploadSingle(req, res, function (err) {
     if (err instanceof multer.MulterError) {
@@ -89,7 +80,6 @@ const uploadSingleFile = (req, res, next) => {
   });
 };
 
-// Wrapper for multiple files upload with error handling
 const uploadMultipleFiles = (req, res, next) => {
   uploadMultiple(req, res, function (err) {
     if (err instanceof multer.MulterError) {

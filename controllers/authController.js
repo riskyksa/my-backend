@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
 
-// Generate JWT token
 const generateToken = (userId) => {
   return jwt.sign(
     { userId },
@@ -11,10 +10,8 @@ const generateToken = (userId) => {
   );
 };
 
-// Register new user
 const register = async (req, res) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -26,7 +23,6 @@ const register = async (req, res) => {
 
     const { email, password, username } = req.body;
 
-    // Check if user already exists
     const existingUser = await User.findOne({
       $or: [{ email }, { username }]
     });
@@ -38,11 +34,9 @@ const register = async (req, res) => {
       });
     }
 
-    // Check if this is the first user (make them admin)
     const userCount = await User.countDocuments();
     const isFirstUser = userCount === 0;
 
-    // Create new user
     const user = new User({
       email,
       password,
@@ -52,7 +46,6 @@ const register = async (req, res) => {
 
     await user.save();
 
-    // Generate token
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -70,10 +63,8 @@ const register = async (req, res) => {
   }
 };
 
-// Login user
 const login = async (req, res) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -85,7 +76,6 @@ const login = async (req, res) => {
 
     const { email, password } = req.body;
 
-    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({
@@ -94,7 +84,6 @@ const login = async (req, res) => {
       });
     }
 
-    // Check if user is active
     if (!user.isActive) {
       return res.status(401).json({
         error: 'Account disabled',
@@ -102,7 +91,6 @@ const login = async (req, res) => {
       });
     }
 
-    // Check password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -111,7 +99,6 @@ const login = async (req, res) => {
       });
     }
 
-    // Generate token
     const token = generateToken(user._id);
 
     res.json({
@@ -129,7 +116,6 @@ const login = async (req, res) => {
   }
 };
 
-// Get current user profile
 const getProfile = async (req, res) => {
   try {
     res.json({
@@ -144,15 +130,12 @@ const getProfile = async (req, res) => {
   }
 };
 
-// Update user profile
 const updateProfile = async (req, res) => {
   try {
     const { username, email } = req.body;
     const updates = {};
 
-    // Only allow updating username and email
     if (username) {
-      // Check if username is already taken
       const existingUser = await User.findOne({ 
         username, 
         _id: { $ne: req.user._id } 
@@ -167,7 +150,6 @@ const updateProfile = async (req, res) => {
     }
 
     if (email) {
-      // Check if email is already taken
       const existingUser = await User.findOne({ 
         email, 
         _id: { $ne: req.user._id } 
@@ -181,7 +163,6 @@ const updateProfile = async (req, res) => {
       updates.email = email;
     }
 
-    // Update user
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
       updates,
@@ -202,10 +183,8 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// Change password
 const changePassword = async (req, res) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -217,7 +196,6 @@ const changePassword = async (req, res) => {
 
     const { currentPassword, newPassword } = req.body;
 
-    // Get user with password for comparison
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({
@@ -226,7 +204,6 @@ const changePassword = async (req, res) => {
       });
     }
 
-    // Validate current password
     const isCurrentPasswordValid = await user.comparePassword(currentPassword);
     if (!isCurrentPasswordValid) {
       return res.status(400).json({
@@ -235,7 +212,6 @@ const changePassword = async (req, res) => {
       });
     }
 
-    // Update password
     user.password = newPassword;
     await user.save();
 

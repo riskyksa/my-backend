@@ -4,7 +4,6 @@ const User = require('../models/User');
 
 const router = express.Router();
 
-// Apply authentication to all routes
 router.use(authenticateToken);
 
 // Get user by ID (admin or self)

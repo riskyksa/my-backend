@@ -3,7 +3,6 @@ const User = require('../models/User');
 const DailyEntry = require('../models/DailyEntry');
 const MonthlyAdvance = require('../models/MonthlyAdvance');
 
-// Get all users (admin only)
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find({ isActive: true })
@@ -24,10 +23,8 @@ const getAllUsers = async (req, res) => {
   }
 };
 
-// Update user deductions (admin only)
 const updateUserDeductions = async (req, res) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -64,10 +61,8 @@ const updateUserDeductions = async (req, res) => {
   }
 };
 
-// Update username (admin only)
 const updateUsername = async (req, res) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -79,7 +74,6 @@ const updateUsername = async (req, res) => {
 
     const { userId, newUsername } = req.body;
 
-    // Check if username is already taken
     const existingUser = await User.findOne({ 
       username: newUsername,
       _id: { $ne: userId }
@@ -117,7 +111,6 @@ const updateUsername = async (req, res) => {
   }
 };
 
-// Delete user (admin only)
 const deleteUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -137,13 +130,10 @@ const deleteUser = async (req, res) => {
       });
     }
 
-    // Delete all user's daily entries
     await DailyEntry.deleteMany({ userId });
 
-    // Delete all user's monthly advances
     await MonthlyAdvance.deleteMany({ userId });
 
-    // Deactivate user instead of deleting
     user.isActive = false;
     await user.save();
 
@@ -160,12 +150,10 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// Complete system reset (admin only)
 const completeSystemReset = async (req, res) => {
   try {
     const { confirmationText } = req.body;
 
-    // Verify confirmation text
     if (confirmationText !== 'تصفير كامل') {
       return res.status(400).json({
         error: 'Invalid confirmation',
@@ -175,19 +163,15 @@ const completeSystemReset = async (req, res) => {
 
     const adminUserId = req.user._id;
 
-    // Delete all daily entries
     await DailyEntry.deleteMany({});
 
-    // Delete all monthly advances
     await MonthlyAdvance.deleteMany({});
 
-    // Deactivate all users except admin
     await User.updateMany(
       { _id: { $ne: adminUserId } },
       { isActive: false }
     );
 
-    // Reset admin deductions
     await User.findByIdAndUpdate(adminUserId, { deductions: 0 });
 
     res.json({
@@ -203,20 +187,17 @@ const completeSystemReset = async (req, res) => {
   }
 };
 
-// Get system statistics (admin only)
 const getSystemStats = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments({ isActive: true });
     const totalEntries = await DailyEntry.countDocuments();
     const totalAdvances = await MonthlyAdvance.countDocuments();
 
-    // Get recent activity
     const recentEntries = await DailyEntry.find()
       .sort({ createdAt: -1 })
       .limit(10)
       .populate('userId', 'username');
 
-    // Get monthly totals
     const currentMonth = new Date().toISOString().substring(0, 7);
     const monthlyEntries = await DailyEntry.find({
       date: { $regex: `^${currentMonth}` }
@@ -246,7 +227,6 @@ const getSystemStats = async (req, res) => {
   }
 };
 
-// Toggle user admin status (admin only)
 const toggleAdminStatus = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -259,7 +239,6 @@ const toggleAdminStatus = async (req, res) => {
       });
     }
 
-    // Prevent removing the last admin
     if (user.isAdmin) {
       const adminCount = await User.countDocuments({ isAdmin: true });
       if (adminCount <= 1) {
@@ -287,16 +266,13 @@ const toggleAdminStatus = async (req, res) => {
   }
 };
 
-// Get monthly summary (admin only)
 const getMonthlySummary = async (req, res) => {
   const { year, month } = req.query;
-  // اجلب كل DailyEntry لهذا الشهر
   const monthStr = String(month).padStart(2, '0');
   const entries = await require('../models/DailyEntry').find({
     date: { $regex: `^${year}-${monthStr}` }
   });
 
-  // ملخص يومي
   const dailySummary = {};
   entries.forEach(entry => {
     if (!dailySummary[entry.date]) {
@@ -313,7 +289,6 @@ const getMonthlySummary = async (req, res) => {
     dailySummary[entry.date].entriesCount += 1;
   });
 
-  // ملخص المستخدمين
   const users = await require('../models/User').find({});
   const usersSummary = users.map(user => {
     const userEntries = entries.filter(e => e.userId.toString() === user._id.toString());
@@ -345,7 +320,6 @@ const getMonthlySummary = async (req, res) => {
   });
 };
 
-// Reset data only (admin only)
 const resetDataOnly = async (req, res) => {
   const { confirmationText } = req.body;
   if (confirmationText !== 'تصفير البيانات') {
@@ -356,7 +330,6 @@ const resetDataOnly = async (req, res) => {
   res.json({ message: 'تم تصفير البيانات المالية بنجاح' });
 };
 
-// ملخص شامل للإدارة (dailySummary, usersSummary, totals)
 const getAdminSummary = async (req, res) => {
   try {
     const { year, month } = req.query;
@@ -366,12 +339,37 @@ const getAdminSummary = async (req, res) => {
     const monthStr = String(month).padStart(2, '0');
     const dateRegex = new RegExp(`^${year}-${monthStr}`);
 
-    // جلب جميع المدخلات لهذا الشهر
     const entries = await require('../models/DailyEntry').find({ date: { $regex: dateRegex } });
+    console.log(`[getAdminSummary] year=${year}, month=${month}, entries found:`, entries.length);
 
-    // dailySummary: لكل يوم
+    if (!entries || entries.length === 0) {
+      return res.json({
+        dailySummary: [],
+        usersSummary: [],
+        totals: {
+          totalCash: 0,
+          totalNetwork: 0,
+          totalPurchases: 0,
+          totalAdvances: 0,
+          totalGross: 0,
+          totalNet: 0,
+          activeDays: 0,
+          activeUsers: 0,
+          averageDailyAmount: 0,
+          daysInMonth: new Date(parseInt(year), parseInt(month), 0).getDate()
+        },
+        message: 'لا توجد بيانات مالية لهذا الشهر.'
+      });
+    }
+
+    // جلب المستخدمين النشطين فقط
+    const users = await require('../models/User').find({ isActive: true });
+    const activeUserIds = new Set(users.map(u => u._id.toString()));
+    // entries لمستخدمين نشطين فقط
+    const filteredEntries = entries.filter(e => activeUserIds.has(e.userId.toString()));
+
     const dailyMap = {};
-    entries.forEach(entry => {
+    filteredEntries.forEach(entry => {
       if (!dailyMap[entry.date]) {
         dailyMap[entry.date] = {
           date: entry.date,
@@ -394,10 +392,8 @@ const getAdminSummary = async (req, res) => {
     });
     const dailySummary = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
 
-    // usersSummary: لكل مستخدم
-    const users = await require('../models/User').find({});
     const userMap = {};
-    entries.forEach(entry => {
+    filteredEntries.forEach(entry => {
       if (!userMap[entry.userId]) {
         const user = users.find(u => u._id.toString() === entry.userId.toString());
         userMap[entry.userId] = {
@@ -421,7 +417,6 @@ const getAdminSummary = async (req, res) => {
       userMap[entry.userId].totalAmount += (entry.cashAmount || 0) + (entry.networkAmount || 0);
       userMap[entry.userId].activeDaysSet.add(entry.date);
     });
-    // finalize user summary
     const usersSummary = Object.values(userMap).map(u => {
       u.totalAdvances = u.totalAdvances || 0;
       u.totalRemaining = u.totalAmount - u.totalPurchases - u.deductions;
@@ -430,15 +425,27 @@ const getAdminSummary = async (req, res) => {
       return u;
     });
 
-    // totals
     const totals = {
-      totalCash: entries.reduce((sum, e) => sum + (e.cashAmount || 0), 0),
-      totalNetwork: entries.reduce((sum, e) => sum + (e.networkAmount || 0), 0),
-      totalPurchases: entries.reduce((sum, e) => sum + (e.purchasesAmount || 0), 0),
-      totalAdvances: entries.reduce((sum, e) => sum + (e.advanceAmount || 0), 0) || 0,
+      totalCash: filteredEntries.reduce((sum, e) => sum + (e.cashAmount || 0), 0),
+      totalNetwork: filteredEntries.reduce((sum, e) => sum + (e.networkAmount || 0), 0),
+      totalPurchases: filteredEntries.reduce((sum, e) => sum + (e.purchasesAmount || 0), 0),
+      totalAdvances: filteredEntries.reduce((sum, e) => sum + (e.advanceAmount || 0), 0) || 0,
     };
     totals.totalGross = totals.totalCash + totals.totalNetwork;
     totals.totalNet = totals.totalGross - totals.totalPurchases - totals.totalAdvances;
+
+    // Active days: عدد الأيام الفريدة التي بها إدخالات لمستخدمين نشطين
+    const uniqueActiveDays = new Set(filteredEntries.map(e => e.date));
+    totals.activeDays = uniqueActiveDays.size;
+    // Active users: عدد المستخدمين النشطين الذين لديهم إدخالات
+    const uniqueActiveUsers = new Set(filteredEntries.map(e => e.userId.toString()));
+    totals.activeUsers = uniqueActiveUsers.size;
+    // Average daily amount: totalGross / activeDays
+    totals.averageDailyAmount = totals.activeDays > 0 ? Math.round(totals.totalGross / totals.activeDays) : 0;
+    // Days in month
+    const yearNum = parseInt(year);
+    const monthNum = parseInt(month);
+    totals.daysInMonth = (!isNaN(yearNum) && !isNaN(monthNum)) ? new Date(yearNum, monthNum, 0).getDate() : 0;
 
     res.json({ dailySummary, usersSummary, totals });
   } catch (error) {
