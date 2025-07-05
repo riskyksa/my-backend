@@ -34,17 +34,25 @@ app.use((req, res, next) => {
 
 // إعدادات CORS الصحيحة
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://web-production-0f21.up.railway.app'],
+  origin: ['http://localhost:5173', 'https://web-production-0f21.up.railway.app', '*'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: false,
+  optionsSuccessStatus: 200
 }));
 
 // هذا الكود يضيف الهيدرز المطلوبة لكل استجابة
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
+  
+  // معالجة خاصة لطلبات OPTIONS (preflight)
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  
   next();
 });
 // Create uploads directory if not exists
