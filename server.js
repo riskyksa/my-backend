@@ -59,9 +59,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// Basic middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Basic middleware - تعامل مع FormData أولاً
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// تعامل مع JSON فقط إذا لم يكن FormData
+app.use((req, res, next) => {
+  if (req.method === 'POST' && req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
+    console.log('📁 FormData detected, skipping JSON parsing');
+    next();
+  } else {
+    express.json({ limit: '10mb' })(req, res, next);
+  }
+});
 
 // Debug middleware for JSON parsing
 app.use((req, res, next) => {

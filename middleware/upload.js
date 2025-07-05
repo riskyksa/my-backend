@@ -81,8 +81,13 @@ const uploadSingleFile = (req, res, next) => {
 };
 
 const uploadMultipleFiles = (req, res, next) => {
+  console.log('📁 uploadMultipleFiles middleware called');
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('Request body before upload:', req.body);
+  
   uploadMultiple(req, res, function (err) {
     if (err instanceof multer.MulterError) {
+      console.log('❌ Multer error:', err);
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({
           error: 'File too large',
@@ -100,11 +105,16 @@ const uploadMultipleFiles = (req, res, next) => {
         message: 'خطأ في رفع الملف'
       });
     } else if (err) {
+      console.log('❌ Upload error:', err);
       return res.status(400).json({
         error: 'File type error',
         message: err.message
       });
     }
+    
+    console.log('✅ Upload successful');
+    console.log('Files uploaded:', req.files);
+    console.log('Request body after upload:', req.body);
     next();
   });
 };
