@@ -30,6 +30,11 @@ const updateMonthlyAdvances = async (userId, date, advanceAmount) => {
 
 exports.createDailyEntry = async (req, res) => {
   try {
+    console.log('🚀 createDailyEntry function called');
+    console.log('📝 Request body:', req.body);
+    console.log('📁 Files:', req.files);
+    console.log('🔑 User ID from token:', req.user.id);
+
     const {
       date,
       cashAmount,

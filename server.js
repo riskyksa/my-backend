@@ -45,6 +45,20 @@ app.use((req, res, next) => {
   next();
 });
 
+// Debug middleware for all requests
+app.use((req, res, next) => {
+  console.log(`🌐 ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+  if (req.method === 'POST') {
+    console.log('📝 POST request detected');
+    console.log('Headers:', req.headers);
+    console.log('Content-Type:', req.headers['content-type']);
+    if (req.url === '/api/daily-entries/create') {
+      console.log('🎯 Daily entry creation request detected');
+    }
+  }
+  next();
+});
+
 // Basic middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));

@@ -10,6 +10,7 @@ const router = express.Router();
 
 // معالجة طلبات OPTIONS قبل أي middleware آخر
 router.options('*', (req, res) => {
+  console.log('🔧 OPTIONS request to dailyEntries router');
   const allowedOrigins = ['http://localhost:5173', 'https://web-production-0f21.up.railway.app'];
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
@@ -21,6 +22,16 @@ router.options('*', (req, res) => {
 });
 
 router.use(authenticateToken);
+
+// Debug middleware for dailyEntries routes
+router.use((req, res, next) => {
+  console.log(`📊 DailyEntries: ${req.method} ${req.url}`);
+  if (req.method === 'POST' && req.url === '/create') {
+    console.log('🎯 Daily entry creation route hit');
+    console.log('Request body keys:', Object.keys(req.body || {}));
+  }
+  next();
+});
 
 const entryValidation = [
   body('date')
