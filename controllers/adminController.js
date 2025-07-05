@@ -542,9 +542,25 @@ exports.addDeduction = async (req, res) => {
   try {
     console.log('Received deduction request:', req.body);
     const { userId, amount, reason } = req.body;
-    
     console.log('Parsed data:', { userId, amount, reason });
-    
+    if (!userId || typeof userId !== 'string' || userId.length !== 24) {
+      return res.status(400).json({
+        error: 'Invalid userId',
+        message: 'معرف المستخدم غير صحيح'
+      });
+    }
+    if (!amount || typeof amount !== 'number' || amount <= 0) {
+      return res.status(400).json({
+        error: 'Invalid amount',
+        message: 'المبلغ غير صحيح'
+      });
+    }
+    if (!reason || typeof reason !== 'string' || reason.trim().length < 3) {
+      return res.status(400).json({
+        error: 'Invalid reason',
+        message: 'السبب غير صحيح'
+      });
+    }
     // التحقق من وجود المستخدم
     const User = require('../models/User');
     const user = await User.findById(userId);
@@ -554,19 +570,14 @@ exports.addDeduction = async (req, res) => {
         message: 'المستخدم غير موجود'
       });
     }
-    
     const Deduction = require('../models/Deduction');
     const deduction = new Deduction({
       userId,
-      amount: parseFloat(amount),
+      amount,
       reason: reason.trim(),
       date: new Date()
     });
-    
-    console.log('Saving deduction:', deduction);
     await deduction.save();
-    
-    console.log('Deduction saved successfully');
     res.json({
       message: 'تمت إضافة الخصمية بنجاح',
       deduction

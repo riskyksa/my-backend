@@ -17,6 +17,15 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Debug middleware for JSON parsing
+app.use((req, res, next) => {
+  if (req.method === 'POST' && req.headers['content-type']?.includes('application/json')) {
+    console.log('JSON request detected');
+    console.log('Request body:', req.body);
+  }
+  next();
+});
+
 // CORS - Allow all origins for Railway
 app.use(cors({
   origin: '*',

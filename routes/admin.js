@@ -26,8 +26,12 @@ router.use(requireAdmin);
 
 // Middleware للتعامل مع أخطاء validation
 const handleValidationErrors = (req, res, next) => {
+  console.log('Validation middleware - body:', req.body);
+  console.log('Validation middleware - headers:', req.headers);
+  
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('Validation errors:', errors.array());
     return res.status(400).json({
       error: 'Validation failed',
       message: 'بيانات غير صحيحة',
