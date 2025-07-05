@@ -78,9 +78,36 @@ exports.createDailyEntry = async (req, res) => {
       await updateMonthlyAdvances(userId, cleanDate, advanceAmount);
     }
 
+    // إضافة URL للصور
+    const entryWithUrls = newEntry.toObject();
+    if (entryWithUrls.attachments) {
+      entryWithUrls.attachments = entryWithUrls.attachments.map(attachment => {
+        // التحقق من وجود الملف
+        try {
+          const filePath = path.join(process.env.UPLOAD_PATH || './uploads', attachment.filename);
+          const fileExists = fs.existsSync(filePath);
+          
+          console.log(`📁 File check: ${attachment.filename} - Exists: ${fileExists}`);
+          
+          return {
+            ...attachment,
+            url: fileExists ? `${req.protocol}://${req.get('host')}/uploads/${attachment.filename}` : null,
+            fileExists
+          };
+        } catch (error) {
+          console.error('Error checking file existence:', error);
+          return {
+            ...attachment,
+            url: null,
+            fileExists: false
+          };
+        }
+      });
+    }
+
     res.status(201).json({
       message: 'تم إنشاء المدخل بنجاح',
-      entry: newEntry
+      entry: entryWithUrls
     });
 
   } catch (error) {
@@ -120,6 +147,36 @@ exports.getDailyEntries = async (req, res) => {
     const entries = await DailyEntry.find(filter).sort({ date: 1 });
     console.log(`Found ${entries.length} entries`);
     
+    // إضافة URL للصور
+    const entriesWithUrls = entries.map(entry => {
+      const entryObj = entry.toObject();
+      if (entryObj.attachments) {
+        entryObj.attachments = entryObj.attachments.map(attachment => {
+          // التحقق من وجود الملف
+          try {
+            const filePath = path.join(process.env.UPLOAD_PATH || './uploads', attachment.filename);
+            const fileExists = fs.existsSync(filePath);
+            
+            console.log(`📁 File check: ${attachment.filename} - Exists: ${fileExists}`);
+            
+            return {
+              ...attachment,
+              url: fileExists ? `${req.protocol}://${req.get('host')}/uploads/${attachment.filename}` : null,
+              fileExists
+            };
+          } catch (error) {
+            console.error('Error checking file existence:', error);
+            return {
+              ...attachment,
+              url: null,
+              fileExists: false
+            };
+          }
+        });
+      }
+      return entryObj;
+    });
+    
     // إضافة headers لمنع الكاش
     res.set({
       'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -127,7 +184,7 @@ exports.getDailyEntries = async (req, res) => {
       'Expires': '0'
     });
     
-    res.json({ entries });
+    res.json({ entries: entriesWithUrls });
   } catch (error) {
     console.error('Get daily entries error:', error);
     res.status(500).json({ 
@@ -240,6 +297,11 @@ exports.deleteAllEntriesForUser = async (req, res) => {
 
 exports.updateDailyEntry = async (req, res) => {
   try {
+    console.log('🚀 updateDailyEntry function called');
+    console.log('📝 Request body:', req.body);
+    console.log('📁 Files:', req.files);
+    console.log('🔑 Entry ID:', req.params.entryId);
+
     const { entryId } = req.params;
     const entry = await DailyEntry.findById(entryId);
     if (!entry) {
@@ -264,7 +326,35 @@ exports.updateDailyEntry = async (req, res) => {
     }
 
     await entry.save();
-    res.json({ message: 'تم تحديث المدخل بنجاح', entry });
+    
+    // إضافة URL للصور
+    const entryWithUrls = entry.toObject();
+    if (entryWithUrls.attachments) {
+      entryWithUrls.attachments = entryWithUrls.attachments.map(attachment => {
+        // التحقق من وجود الملف
+        try {
+          const filePath = path.join(process.env.UPLOAD_PATH || './uploads', attachment.filename);
+          const fileExists = fs.existsSync(filePath);
+          
+          console.log(`📁 File check: ${attachment.filename} - Exists: ${fileExists}`);
+          
+          return {
+            ...attachment,
+            url: fileExists ? `${req.protocol}://${req.get('host')}/uploads/${attachment.filename}` : null,
+            fileExists
+          };
+        } catch (error) {
+          console.error('Error checking file existence:', error);
+          return {
+            ...attachment,
+            url: null,
+            fileExists: false
+          };
+        }
+      });
+    }
+    
+    res.json({ message: 'تم تحديث المدخل بنجاح', entry: entryWithUrls });
   } catch (error) {
     console.error('Error updating daily entry:', error);
     res.status(500).json({ message: 'حدث خطأ أثناء تحديث المدخل' });

@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs');
+const path = require('path'); // Added for path.join
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -98,7 +99,31 @@ if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }
 
-app.use('/uploads', express.static('uploads'));
+// إعداد static files للملفات المرفوعة
+app.use('/uploads', express.static('uploads', {
+  setHeaders: (res, path) => {
+    // إضافة headers للصور
+    if (path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.png') || path.endsWith('.gif')) {
+      res.setHeader('Content-Type', 'image/' + path.split('.').pop());
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // cache لمدة سنة
+    }
+    // إضافة CORS headers للملفات
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+  },
+  fallthrough: false // عدم السماح بالخطأ في حالة عدم وجود الملف
+}));
+
+// إضافة middleware لمعالجة أخطاء الملفات
+app.use('/uploads', (req, res, next) => {
+  console.log(`📁 File request: ${req.url}`);
+  const filePath = path.join(process.env.UPLOAD_PATH || './uploads', req.url);
+  if (!fs.existsSync(filePath)) {
+    console.log(`❌ File not found: ${filePath}`);
+    return res.status(404).json({ error: 'File not found' });
+  }
+  next();
+});
 
 app.get('/health', (req, res) => {
   console.log('Health check requested');
