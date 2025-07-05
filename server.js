@@ -14,10 +14,16 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
+// 1. Add the Vercel frontend domain to allowedOrigins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://web-production-0f21.up.railway.app',
+  'https://frontend-daily-entries.vercel.app'
+];
+
 // إعدادات CORS (يجب أن تكون في الأعلى وقبل أي راوتر)
 app.use(cors({
   origin: function(origin, callback) {
-    const allowedOrigins = ['http://localhost:5173', 'https://web-production-0f21.up.railway.app'];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -32,7 +38,6 @@ app.use(cors({
 
 // إضافة الهيدرز المطلوبة لكل استجابة ومعالجة OPTIONS
 app.use((req, res, next) => {
-  const allowedOrigins = ['http://localhost:5173', 'https://web-production-0f21.up.railway.app'];
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
