@@ -115,6 +115,13 @@ exports.getDailyEntries = async (req, res) => {
     const entries = await DailyEntry.find(filter).sort({ date: 1 });
     console.log(`Found ${entries.length} entries`);
     
+    // إضافة headers لمنع الكاش
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
     res.json({ entries });
   } catch (error) {
     console.error('Get daily entries error:', error);
@@ -145,6 +152,13 @@ exports.getMonthlyAdvances = async (req, res) => {
     
     const advances = await MonthlyAdvance.find({ userId, yearMonth });
     console.log(`Found ${advances.length} advances for user ${userId} in ${yearMonth}`);
+    
+    // إضافة headers لمنع الكاش
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     
     res.json({ advances });
   } catch (error) {
@@ -282,6 +296,14 @@ exports.getDeductions = async (req, res) => {
       .populate('userId', 'username');
 
     console.log(`Found ${deductions.length} deductions`);
+    
+    // إضافة headers لمنع الكاش
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
     res.json({ deductions });
   } catch (error) {
     console.error('Get deductions error:', error);

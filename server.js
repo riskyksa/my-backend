@@ -31,12 +31,22 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS - Allow all origins for Railway
+
+// إعدادات CORS الصحيحة
 app.use(cors({
-  origin: '*',
-  credentials: false
+  origin: ['http://localhost:5173', 'https://web-production-0f21.up.railway.app'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
+// هذا الكود يضيف الهيدرز المطلوبة لكل استجابة
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  next();
+});
 // Create uploads directory if not exists
 const uploadPath = process.env.UPLOAD_PATH || './uploads';
 if (!fs.existsSync(uploadPath)) {
@@ -47,13 +57,26 @@ app.use('/uploads', express.static('uploads'));
 
 app.get('/health', (req, res) => {
   console.log('Health check requested');
-  res.status(200).send('OK');
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    cors: {
+      origin: req.headers.origin,
+      method: req.method
+    }
+  });
 });
 
 app.get('/', (req, res) => {
   res.json({ 
     message: 'Freelance Daily Entries API',
-    status: 'running'
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    cors: {
+      origin: req.headers.origin,
+      method: req.method
+    }
   });
 });
 
