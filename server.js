@@ -32,27 +32,36 @@ app.use((req, res, next) => {
 });
 
 
-// إعدادات CORS الصحيحة
+// إعدادات CORS الصحيحة (يجب أن تكون قبل أي راوتر)
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://web-production-0f21.up.railway.app', '*'],
+  origin: function(origin, callback) {
+    // السماح فقط للدومينات الموثوقة
+    const allowedOrigins = ['http://localhost:5173', 'https://web-production-0f21.up.railway.app'];
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: false,
   optionsSuccessStatus: 200
 }));
 
-// هذا الكود يضيف الهيدرز المطلوبة لكل استجابة
+// إضافة الهيدرز المطلوبة لكل استجابة ومعالجة OPTIONS
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  const allowedOrigins = ['http://localhost:5173', 'https://web-production-0f21.up.railway.app'];
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
-  
-  // معالجة خاصة لطلبات OPTIONS (preflight)
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
-  
   next();
 });
 // Create uploads directory if not exists
