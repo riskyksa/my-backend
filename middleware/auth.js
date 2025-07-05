@@ -14,6 +14,14 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET not set in environment');
+      return res.status(500).json({ 
+        error: 'Server configuration error',
+        message: 'خطأ في إعدادات الخادم'
+      });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     const user = await User.findById(decoded.userId).select('-password');

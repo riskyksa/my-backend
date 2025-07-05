@@ -58,6 +58,17 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
   
+  // التحقق من المتغيرات المطلوبة
+  if (!process.env.JWT_SECRET) {
+    console.log('⚠️ JWT_SECRET not set, using default for development');
+    process.env.JWT_SECRET = 'dev-secret-key-change-in-production';
+  }
+  
+  if (!process.env.MONGODB_URI) {
+    console.log('⚠️ MONGODB_URI not set, using default local MongoDB');
+    process.env.MONGODB_URI = 'mongodb://localhost:27017/freelance_db';
+  }
+  
   if (process.env.MONGODB_URI) {
     mongoose.connect(process.env.MONGODB_URI)
       .then(() => {
@@ -65,6 +76,7 @@ app.listen(PORT, '0.0.0.0', () => {
       })
       .catch((error) => {
         console.error('❌ MongoDB connection error:', error);
+        console.log('⚠️ Server will continue without database connection');
       });
   } else {
     console.log('⚠️ MONGODB_URI not set');

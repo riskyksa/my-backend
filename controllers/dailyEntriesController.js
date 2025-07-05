@@ -1,4 +1,5 @@
 const { validationResult } = require('express-validator');
+const mongoose = require('mongoose');
 const DailyEntry = require('../models/DailyEntry');
 const MonthlyAdvance = require('../models/MonthlyAdvance');
 const User = require('../models/User');
@@ -89,6 +90,17 @@ exports.createDailyEntry = async (req, res) => {
 exports.getDailyEntries = async (req, res) => {
   try {
     const { year, month, userId } = req.query;
+    console.log('Getting daily entries with params:', { year, month, userId });
+    
+    // التحقق من اتصال قاعدة البيانات
+    if (mongoose.connection.readyState !== 1) {
+      console.error('Database not connected');
+      return res.status(503).json({
+        error: 'Database not available',
+        message: 'قاعدة البيانات غير متاحة'
+      });
+    }
+    
     const filter = {};
 
     if (userId) filter.userId = userId;
@@ -99,25 +111,48 @@ exports.getDailyEntries = async (req, res) => {
       filter.date = { $regex: `^${year}-` };
     }
 
+    console.log('Filter:', filter);
     const entries = await DailyEntry.find(filter).sort({ date: 1 });
+    console.log(`Found ${entries.length} entries`);
+    
     res.json({ entries });
   } catch (error) {
     console.error('Get daily entries error:', error);
-    res.status(500).json({ error: 'Failed to get daily entries' });
+    res.status(500).json({ 
+      error: 'Failed to get daily entries',
+      message: error.message 
+    });
   }
 };
 
 exports.getMonthlyAdvances = async (req, res) => {
   try {
     const { yearMonth, userId } = req.query;
+    console.log('Getting monthly advances with params:', { yearMonth, userId });
+    
+    // التحقق من اتصال قاعدة البيانات
+    if (mongoose.connection.readyState !== 1) {
+      console.error('Database not connected');
+      return res.status(503).json({
+        error: 'Database not available',
+        message: 'قاعدة البيانات غير متاحة'
+      });
+    }
+    
     if (!yearMonth || !userId) {
       return res.status(400).json({ message: 'yearMonth and userId are required' });
     }
+    
     const advances = await MonthlyAdvance.find({ userId, yearMonth });
+    console.log(`Found ${advances.length} advances for user ${userId} in ${yearMonth}`);
+    
     res.json({ advances });
   } catch (error) {
     console.error('Get monthly advances error:', error);
-    res.status(500).json({ message: 'Failed to get monthly advances' });
+    res.status(500).json({ 
+      message: 'Failed to get monthly advances',
+      error: error.message 
+    });
   }
 };
 
@@ -220,6 +255,17 @@ exports.updateDailyEntry = async (req, res) => {
 exports.getDeductions = async (req, res) => {
   try {
     const { userId, year, month } = req.query;
+    console.log('Getting deductions with params:', { userId, year, month });
+    
+    // التحقق من اتصال قاعدة البيانات
+    if (mongoose.connection.readyState !== 1) {
+      console.error('Database not connected');
+      return res.status(503).json({
+        error: 'Database not available',
+        message: 'قاعدة البيانات غير متاحة'
+      });
+    }
+    
     const filter = {};
 
     if (userId) filter.userId = userId;
@@ -230,13 +276,18 @@ exports.getDeductions = async (req, res) => {
       filter.date = { $gte: startDate, $lte: endDate };
     }
 
+    console.log('Deductions filter:', filter);
     const deductions = await Deduction.find(filter)
       .sort({ date: -1 })
       .populate('userId', 'username');
 
+    console.log(`Found ${deductions.length} deductions`);
     res.json({ deductions });
   } catch (error) {
     console.error('Get deductions error:', error);
-    res.status(500).json({ error: 'Failed to get deductions' });
+    res.status(500).json({ 
+      error: 'Failed to get deductions',
+      message: error.message 
+    });
   }
 };

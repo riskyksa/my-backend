@@ -1,4 +1,5 @@
 const { validationResult } = require('express-validator');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const DailyEntry = require('../models/DailyEntry');
 const MonthlyAdvance = require('../models/MonthlyAdvance');
@@ -6,20 +7,63 @@ const Deduction = require('../models/Deduction');
 
 const getAllUsers = async (req, res) => {
   try {
+    console.log('Getting all users...');
+    
+    // التحقق من اتصال قاعدة البيانات
+    if (mongoose.connection.readyState !== 1) {
+      console.error('Database not connected');
+      return res.status(503).json({
+        error: 'Database not available',
+        message: 'قاعدة البيانات غير متاحة'
+      });
+    }
+    
     const users = await User.find({ isActive: true })
       .select('-password')
       .sort({ username: 1 });
 
-    res.json({
-      users,
-      count: users.length
-    });
+    console.log(`Found ${users.length} active users`);
+
+    // إذا لم يكن هناك مستخدمين، إنشاء مستخدم تجريبي
+    if (users.length === 0) {
+      console.log('No users found, creating test user...');
+      
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash('123456', 12);
+      
+      const testUser = new User({
+        email: 'admin@test.com',
+        password: hashedPassword,
+        username: 'admin',
+        isAdmin: true,
+        isActive: true
+      });
+      
+      await testUser.save();
+      console.log('Test user created successfully');
+      
+      // إعادة جلب المستخدمين
+      const updatedUsers = await User.find({ isActive: true })
+        .select('-password')
+        .sort({ username: 1 });
+      
+      res.json({
+        users: updatedUsers,
+        count: updatedUsers.length
+      });
+    } else {
+      res.json({
+        users,
+        count: users.length
+      });
+    }
 
   } catch (error) {
     console.error('Get all users error:', error);
     res.status(500).json({
       error: 'Failed to get users',
-      message: 'فشل في جلب المستخدمين'
+      message: 'فشل في جلب المستخدمين',
+      details: error.message
     });
   }
 };
