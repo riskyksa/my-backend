@@ -2,6 +2,7 @@ const { validationResult } = require('express-validator');
 const User = require('../models/User');
 const DailyEntry = require('../models/DailyEntry');
 const MonthlyAdvance = require('../models/MonthlyAdvance');
+const Deduction = require('../models/Deduction');
 
 const getAllUsers = async (req, res) => {
   try {
@@ -492,6 +493,86 @@ exports.getUserSummary = async (req, res) => {
   res.json({ totalCash, totalNetwork, totalPurchases, totalAdvances, deductions, remaining });
 };
 
+const addDeduction = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'بيانات غير صحيحة',
+        details: errors.array()
+      });
+    }
+
+    const { userId, amount, reason } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'المستخدم غير موجود'
+      });
+    }
+
+    const deduction = new Deduction({
+      userId,
+      amount,
+      reason
+    });
+
+    await deduction.save();
+
+    res.json({
+      message: 'تمت إضافة الخصمية بنجاح',
+      deduction: deduction.toJSON()
+    });
+
+  } catch (error) {
+    console.error('Add deduction error:', error);
+    res.status(500).json({
+      error: 'Failed to add deduction',
+      message: 'فشل في إضافة الخصمية'
+    });
+  }
+};
+
+const updateUserAdvances = async (req, res) => {
+  try {
+    const { userId, advances } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'المستخدم غير موجود'
+      });
+    }
+
+    // تحديث السلفيات في جدول MonthlyAdvance
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    const yearMonth = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+
+    await MonthlyAdvance.findOneAndUpdate(
+      { userId, yearMonth },
+      { totalAdvances: advances },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      message: 'تم تحديث السلفيات بنجاح',
+      user: user.toJSON()
+    });
+
+  } catch (error) {
+    console.error('Update user advances error:', error);
+    res.status(500).json({
+      error: 'Failed to update advances',
+      message: 'فشل في تحديث السلفيات'
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   updateUserDeductions,
@@ -505,5 +586,7 @@ module.exports = {
   getAdminSummary,
   getUsersMonthlyTotals: exports.getUsersMonthlyTotals,
   deleteAllEntriesForUser: exports.deleteAllEntriesForUser,
-  getUserSummary: exports.getUserSummary
+  getUserSummary: exports.getUserSummary,
+  addDeduction,
+  updateUserAdvances
 };

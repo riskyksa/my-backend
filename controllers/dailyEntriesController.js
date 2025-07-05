@@ -2,6 +2,7 @@ const { validationResult } = require('express-validator');
 const DailyEntry = require('../models/DailyEntry');
 const MonthlyAdvance = require('../models/MonthlyAdvance');
 const User = require('../models/User');
+const Deduction = require('../models/Deduction');
 const fs = require('fs');
 const path = require('path');
 
@@ -213,5 +214,29 @@ exports.updateDailyEntry = async (req, res) => {
   } catch (error) {
     console.error('Error updating daily entry:', error);
     res.status(500).json({ message: 'حدث خطأ أثناء تحديث المدخل' });
+  }
+};
+
+exports.getDeductions = async (req, res) => {
+  try {
+    const { userId, year, month } = req.query;
+    const filter = {};
+
+    if (userId) filter.userId = userId;
+    if (year && month) {
+      const monthStr = String(month).padStart(2, '0');
+      const startDate = new Date(`${year}-${monthStr}-01`);
+      const endDate = new Date(`${year}-${monthStr}-31`);
+      filter.date = { $gte: startDate, $lte: endDate };
+    }
+
+    const deductions = await Deduction.find(filter)
+      .sort({ date: -1 })
+      .populate('userId', 'username');
+
+    res.json({ deductions });
+  } catch (error) {
+    console.error('Get deductions error:', error);
+    res.status(500).json({ error: 'Failed to get deductions' });
   }
 };

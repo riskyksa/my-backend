@@ -3,7 +3,7 @@ const { body } = require('express-validator');
 const { authenticateToken, canAccessUser } = require('../middleware/auth');
 const { uploadMultipleFiles } = require('../middleware/upload');
 const {
-  createDailyEntry, getDailyEntries, getMonthlyAdvances, deleteAttachment,
+  createDailyEntry, getDailyEntries, getMonthlyAdvances, deleteAttachment, getDeductions,
 } = require('../controllers/dailyEntriesController');
 
 const router = express.Router();
@@ -20,6 +20,7 @@ const entryValidation = [
 
 router.get('/', canAccessUser, getDailyEntries);
 router.get('/monthly-advances', canAccessUser, getMonthlyAdvances);
+router.get('/deductions', canAccessUser, getDeductions);
 router.post('/create', entryValidation, canAccessUser, uploadMultipleFiles, createDailyEntry);
 
 router.delete('/:entryId/attachments/:attachmentId', deleteAttachment);

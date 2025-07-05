@@ -14,7 +14,9 @@ const {
   getAdminSummary,
   getUsersMonthlyTotals,
   deleteAllEntriesForUser,
-  getUserSummary
+  getUserSummary,
+  addDeduction,
+  updateUserAdvances
 } = require('../controllers/adminController');
 
 const router = express.Router();
@@ -42,6 +44,18 @@ const updateUsernameValidation = [
     .withMessage('اسم المستخدم يمكن أن يحتوي على أحرف وأرقام وشرطة سفلية فقط')
 ];
 
+const addDeductionValidation = [
+  body('userId')
+    .isMongoId()
+    .withMessage('معرف المستخدم غير صحيح'),
+  body('amount')
+    .isFloat({ min: 0.01 })
+    .withMessage('المبلغ يجب أن يكون رقم موجب'),
+  body('reason')
+    .isLength({ min: 3, max: 200 })
+    .withMessage('السبب يجب أن يكون بين 3 و 200 حرف')
+];
+
 const systemResetValidation = [
   body('confirmationText')
     .equals('تصفير كامل')
@@ -52,6 +66,8 @@ const systemResetValidation = [
 router.get('/users', getAllUsers);
 router.put('/users/deductions', updateDeductionsValidation, updateUserDeductions);
 router.put('/users/username', updateUsernameValidation, updateUsername);
+router.post('/users/deduction', addDeductionValidation, addDeduction);
+router.put('/users/advances', updateUserAdvances);
 router.delete('/users/:userId', deleteUser);
 router.post('/system-reset', systemResetValidation, completeSystemReset);
 router.get('/stats', getSystemStats);
