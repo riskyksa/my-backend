@@ -3,9 +3,14 @@ const User = require('../models/User');
 
 const authenticateToken = async (req, res, next) => {
   try {
+    // محاولة الحصول على التوكن من headers أولاً
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; 
-    // Bearer TOKEN
+    let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    
+    // إذا لم يوجد في headers، جرب من FormData
+    if (!token && req.body && req.body.token) {
+      token = req.body.token;
+    }
 
     if (!token) {
       return res.status(401).json({ 
