@@ -78,6 +78,6 @@ router.get('/summary', getAdminSummary);
 router.get('/users-monthly-totals', getUsersMonthlyTotals);
 router.delete('/user-entries/:userId', deleteAllEntriesForUser);
 router.get('/user-summary', getUserSummary);
-router.post('/deductions', authenticateToken, requireAdmin, addDeduction);
+router.post('/deductions', addDeductionValidation, addDeduction);
 
 module.exports = router;

@@ -569,7 +569,7 @@ exports.addDeduction = async (req, res) => {
   }
 };
 
-const updateUserAdvances = async (req, res) => {
+exports.updateUserAdvances = async (req, res) => {
   try {
     const { userId, advances } = req.body;
 
@@ -620,6 +620,6 @@ module.exports = {
   getUsersMonthlyTotals: exports.getUsersMonthlyTotals,
   deleteAllEntriesForUser: exports.deleteAllEntriesForUser,
   getUserSummary: exports.getUserSummary,
-  addDeduction,
-  updateUserAdvances
+  addDeduction: exports.addDeduction,
+  updateUserAdvances: exports.updateUserAdvances
 };
