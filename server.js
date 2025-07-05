@@ -20,8 +20,13 @@ app.use(express.urlencoded({ extended: true }));
 // Debug middleware for JSON parsing
 app.use((req, res, next) => {
   if (req.method === 'POST' && req.headers['content-type']?.includes('application/json')) {
+    console.log('=== SERVER JSON DEBUG ===');
     console.log('JSON request detected');
-    console.log('Request body:', req.body);
+    console.log('URL:', req.url);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Request body type:', typeof req.body);
+    console.log('Request body keys:', Object.keys(req.body || {}));
   }
   next();
 });

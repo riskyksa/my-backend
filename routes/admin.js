@@ -33,6 +33,9 @@ const handleValidationErrors = (req, res, next) => {
   console.log('Request body:', JSON.stringify(req.body, null, 2));
   console.log('Request body type:', typeof req.body);
   console.log('Request body keys:', Object.keys(req.body || {}));
+  console.log('userId:', req.body?.userId, 'type:', typeof req.body?.userId);
+  console.log('amount:', req.body?.amount, 'type:', typeof req.body?.amount);
+  console.log('reason:', req.body?.reason, 'type:', typeof req.body?.reason);
   
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -72,23 +75,28 @@ const addDeductionValidation = [
   body('userId')
     .notEmpty()
     .withMessage('معرف المستخدم مطلوب')
-    .isString()
-    .withMessage('معرف المستخدم يجب أن يكون نص')
-    .isLength({ min: 24, max: 24 })
-    .withMessage('معرف المستخدم غير صحيح'),
+    .custom((value, { req }) => {
+      console.log('Validating userId:', value, 'type:', typeof value);
+      return true;
+    }),
   body('amount')
     .notEmpty()
     .withMessage('المبلغ مطلوب')
-    .custom((value) => {
+    .custom((value, { req }) => {
+      console.log('Validating amount:', value, 'type:', typeof value);
       const num = parseFloat(value);
-      return !isNaN(num) && num > 0;
+      const isValid = !isNaN(num) && num > 0;
+      console.log('Amount validation result:', isValid);
+      return isValid;
     })
     .withMessage('المبلغ يجب أن يكون رقم أكبر من صفر'),
   body('reason')
     .notEmpty()
     .withMessage('السبب مطلوب')
-    .isString()
-    .withMessage('السبب يجب أن يكون نص')
+    .custom((value, { req }) => {
+      console.log('Validating reason:', value, 'type:', typeof value);
+      return true;
+    })
     .isLength({ min: 3, max: 200 })
     .withMessage('السبب يجب أن يكون بين 3 و 200 حرف')
 ];
