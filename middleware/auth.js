@@ -7,7 +7,12 @@ const authenticateToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
     
-    // إذا لم يوجد في headers، جرب من FormData
+    // إذا لم يوجد في headers، جرب من query string
+    if (!token && req.query && req.query.token) {
+      token = req.query.token;
+    }
+    
+    // إذا لم يوجد في query string، جرب من FormData
     if (!token && req.body && req.body.token) {
       token = req.body.token;
     }
