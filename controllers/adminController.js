@@ -537,45 +537,34 @@ exports.getUserSummary = async (req, res) => {
   res.json({ totalCash, totalNetwork, totalPurchases, totalAdvances, deductions, remaining });
 };
 
-const addDeduction = async (req, res) => {
+// إضافة خصمية جديدة لمستخدم
+exports.addDeduction = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        error: 'Validation error',
-        message: 'بيانات غير صحيحة',
-        details: errors.array()
-      });
-    }
-
     const { userId, amount, reason } = req.body;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        error: 'User not found',
-        message: 'المستخدم غير موجود'
+    if (!userId || !amount || !reason) {
+      return res.status(400).json({
+        error: 'Missing fields',
+        message: 'يجب إدخال جميع الحقول (المستخدم، المبلغ، السبب)'
       });
     }
-
+    const Deduction = require('../models/Deduction');
     const deduction = new Deduction({
       userId,
       amount,
-      reason
+      reason,
+      date: new Date()
     });
-
     await deduction.save();
-
     res.json({
       message: 'تمت إضافة الخصمية بنجاح',
-      deduction: deduction.toJSON()
+      deduction
     });
-
   } catch (error) {
     console.error('Add deduction error:', error);
     res.status(500).json({
       error: 'Failed to add deduction',
-      message: 'فشل في إضافة الخصمية'
+      message: 'فشل في إضافة الخصمية',
+      details: error.message
     });
   }
 };
