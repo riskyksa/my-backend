@@ -26,18 +26,25 @@ router.use(requireAdmin);
 
 // Middleware للتعامل مع أخطاء validation
 const handleValidationErrors = (req, res, next) => {
-  console.log('Validation middleware - body:', req.body);
-  console.log('Validation middleware - headers:', req.headers);
+  console.log('=== VALIDATION DEBUG ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  console.log('Request body type:', typeof req.body);
+  console.log('Request body keys:', Object.keys(req.body || {}));
   
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     console.log('Validation errors:', errors.array());
+    const errorMessages = errors.array().map(err => err.msg).join(', ');
     return res.status(400).json({
       error: 'Validation failed',
-      message: 'بيانات غير صحيحة',
+      message: errorMessages,
       details: errors.array()
     });
   }
+  console.log('Validation passed successfully');
   next();
 };
 
@@ -65,18 +72,23 @@ const addDeductionValidation = [
   body('userId')
     .notEmpty()
     .withMessage('معرف المستخدم مطلوب')
-    .isMongoId()
+    .isString()
+    .withMessage('معرف المستخدم يجب أن يكون نص')
+    .isLength({ min: 24, max: 24 })
     .withMessage('معرف المستخدم غير صحيح'),
   body('amount')
     .notEmpty()
     .withMessage('المبلغ مطلوب')
-    .isNumeric()
-    .withMessage('المبلغ يجب أن يكون رقم')
-    .custom(value => parseFloat(value) > 0)
-    .withMessage('المبلغ يجب أن يكون أكبر من صفر'),
+    .custom((value) => {
+      const num = parseFloat(value);
+      return !isNaN(num) && num > 0;
+    })
+    .withMessage('المبلغ يجب أن يكون رقم أكبر من صفر'),
   body('reason')
     .notEmpty()
     .withMessage('السبب مطلوب')
+    .isString()
+    .withMessage('السبب يجب أن يكون نص')
     .isLength({ min: 3, max: 200 })
     .withMessage('السبب يجب أن يكون بين 3 و 200 حرف')
 ];
