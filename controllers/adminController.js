@@ -540,21 +540,33 @@ exports.getUserSummary = async (req, res) => {
 // إضافة خصمية جديدة لمستخدم
 exports.addDeduction = async (req, res) => {
   try {
+    console.log('Received deduction request:', req.body);
     const { userId, amount, reason } = req.body;
-    if (!userId || !amount || !reason) {
-      return res.status(400).json({
-        error: 'Missing fields',
-        message: 'يجب إدخال جميع الحقول (المستخدم، المبلغ، السبب)'
+    
+    console.log('Parsed data:', { userId, amount, reason });
+    
+    // التحقق من وجود المستخدم
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'المستخدم غير موجود'
       });
     }
+    
     const Deduction = require('../models/Deduction');
     const deduction = new Deduction({
       userId,
-      amount,
-      reason,
+      amount: parseFloat(amount),
+      reason: reason.trim(),
       date: new Date()
     });
+    
+    console.log('Saving deduction:', deduction);
     await deduction.save();
+    
+    console.log('Deduction saved successfully');
     res.json({
       message: 'تمت إضافة الخصمية بنجاح',
       deduction
