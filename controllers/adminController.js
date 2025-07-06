@@ -608,7 +608,27 @@ exports.addDeduction = async (req, res) => {
 
 exports.updateUserAdvances = async (req, res) => {
   try {
+    console.log('=== UPDATE USER ADVANCES DEBUG ===');
+    console.log('Received request body:', req.body);
+    
     const { userId, advances } = req.body;
+    
+    console.log('Parsed data:', { userId, advances, types: { userId: typeof userId, advances: typeof advances } });
+
+    if (!userId || typeof userId !== 'string' || userId.length !== 24) {
+      return res.status(400).json({
+        error: 'Invalid userId',
+        message: 'معرف المستخدم غير صحيح'
+      });
+    }
+
+    const parsedAdvances = parseFloat(advances);
+    if (isNaN(parsedAdvances) || parsedAdvances < 0) {
+      return res.status(400).json({
+        error: 'Invalid advances amount',
+        message: 'مبلغ السلفيات غير صحيح'
+      });
+    }
 
     const user = await User.findById(userId);
     if (!user) {
@@ -623,22 +643,35 @@ exports.updateUserAdvances = async (req, res) => {
     const currentMonth = new Date().getMonth() + 1;
     const yearMonth = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
 
-    await MonthlyAdvance.findOneAndUpdate(
+    console.log('Updating advances for:', { userId, yearMonth, advances: parsedAdvances });
+
+    const updatedAdvance = await MonthlyAdvance.findOneAndUpdate(
       { userId, yearMonth },
-      { totalAdvances: advances },
+      { totalAdvances: parsedAdvances },
       { upsert: true, new: true }
     );
 
+    console.log('Advance updated successfully:', updatedAdvance);
+
+    // إضافة headers لمنع الكاش
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
     res.json({
       message: 'تم تحديث السلفيات بنجاح',
-      user: user.toJSON()
+      user: user.toJSON(),
+      updatedAdvance
     });
 
   } catch (error) {
     console.error('Update user advances error:', error);
     res.status(500).json({
       error: 'Failed to update advances',
-      message: 'فشل في تحديث السلفيات'
+      message: 'فشل في تحديث السلفيات',
+      details: error.message
     });
   }
 };

@@ -197,6 +197,7 @@ exports.getDailyEntries = async (req, res) => {
 exports.getMonthlyAdvances = async (req, res) => {
   try {
     const { yearMonth, userId } = req.query;
+    console.log('=== GET MONTHLY ADVANCES DEBUG ===');
     console.log('Getting monthly advances with params:', { yearMonth, userId });
     
     // التحقق من اتصال قاعدة البيانات
@@ -214,6 +215,7 @@ exports.getMonthlyAdvances = async (req, res) => {
     
     const advances = await MonthlyAdvance.find({ userId, yearMonth });
     console.log(`Found ${advances.length} advances for user ${userId} in ${yearMonth}`);
+    console.log('Advances data:', advances);
     
     // إضافة headers لمنع الكاش
     res.set({
