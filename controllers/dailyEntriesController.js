@@ -399,7 +399,7 @@ exports.getDeductions = async (req, res) => {
       'Expires': '0'
     });
     
-    res.json({ deductions });
+    res.json({ entries: deductions });
   } catch (error) {
     console.error('Get deductions error:', error);
     res.status(500).json({ 
