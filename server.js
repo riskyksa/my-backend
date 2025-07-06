@@ -19,7 +19,8 @@ const allowedOrigins = [
   'http://localhost:5173',
   'https://web-production-0f21.up.railway.app',
   'https://frontend-daily-entries.vercel.app',
-  'https://naif511.com/'
+  'https://naif511.com',
+
 ];
 
 // إعدادات CORS (يجب أن تكون في الأعلى وقبل أي راوتر)
