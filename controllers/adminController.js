@@ -542,8 +542,8 @@ exports.addDeduction = async (req, res) => {
   try {
     console.log('=== ADD DEDUCTION DEBUG ===');
     console.log('Received deduction request:', req.body);
-    const { userId, amount, reason } = req.body;
-    console.log('Parsed data:', { userId, amount, reason, types: { userId: typeof userId, amount: typeof amount, reason: typeof reason } });
+    const { userId, amount, reason, date } = req.body;
+    console.log('Parsed data:', { userId, amount, reason, date, types: { userId: typeof userId, amount: typeof amount, reason: typeof reason, date: typeof date } });
     
     // تحويل البيانات إلى الأنواع الصحيحة
     const parsedAmount = parseFloat(amount);
@@ -585,7 +585,7 @@ exports.addDeduction = async (req, res) => {
       userId,
       amount: parsedAmount,
       reason: trimmedReason,
-      date: new Date()
+      date: date ? new Date(date) : new Date()
     });
     
     console.log('Saving deduction:', deduction);
