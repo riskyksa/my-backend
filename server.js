@@ -20,12 +20,13 @@ const allowedOrigins = [
   'https://web-production-0f21.up.railway.app',
   'https://frontend-daily-entries.vercel.app',
   'https://naif511.com',
+  'https://my-backend-g008.onrender.com'  // ← أضف هذا
 
 ];
 
 // إعدادات CORS (يجب أن تكون في الأعلى وقبل أي راوتر)
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -73,7 +74,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // middleware ذكي للتعامل مع JSON و FormData
 app.use((req, res, next) => {
   const contentType = req.headers['content-type'] || '';
-  
+
   if (req.method === 'POST' && contentType.includes('multipart/form-data')) {
     console.log('📁 FormData detected, skipping JSON parsing');
     next();
@@ -146,7 +147,7 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Freelance Daily Entries API',
     status: 'running',
     timestamp: new Date().toISOString(),
@@ -171,18 +172,18 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
-  
+
   // التحقق من المتغيرات المطلوبة
   if (!process.env.JWT_SECRET) {
     console.log('⚠️ JWT_SECRET not set, using default for development');
     process.env.JWT_SECRET = 'dev-secret-key-change-in-production';
   }
-  
+
   if (!process.env.MONGODB_URI) {
     console.log('⚠️ MONGODB_URI not set, using default local MongoDB');
     process.env.MONGODB_URI = 'mongodb://localhost:27017/freelance_db';
   }
-  
+
   if (process.env.MONGODB_URI) {
     mongoose.connect(process.env.MONGODB_URI)
       .then(() => {
