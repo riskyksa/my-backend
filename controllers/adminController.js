@@ -211,11 +211,9 @@ const updateUserPassword = async (req, res) => {
       });
     }
 
-    const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-    user.password = hashedPassword;
+    user.password = newPassword; // سيقوم pre-save hook بالتشفير تلقائيًا
     await user.save();
+
 
     res.json({
       message: 'تم تحديث كلمة المرور بنجاح'
