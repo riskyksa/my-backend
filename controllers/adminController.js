@@ -8,7 +8,7 @@ const Deduction = require('../models/Deduction');
 const getAllUsers = async (req, res) => {
   try {
     console.log('Getting all users...');
-    
+
     // التحقق من اتصال قاعدة البيانات
     if (mongoose.connection.readyState !== 1) {
       console.error('Database not connected');
@@ -17,7 +17,7 @@ const getAllUsers = async (req, res) => {
         message: 'قاعدة البيانات غير متاحة'
       });
     }
-    
+
     const users = await User.find({ isActive: true })
       .select('-password')
       .sort({ username: 1 });
@@ -27,10 +27,10 @@ const getAllUsers = async (req, res) => {
     // إذا لم يكن هناك مستخدمين، إنشاء مستخدم تجريبي
     if (users.length === 0) {
       console.log('No users found, creating test user...');
-      
+
       const bcrypt = require('bcryptjs');
       const hashedPassword = await bcrypt.hash('123456', 12);
-      
+
       const testUser = new User({
         email: 'admin@test.com',
         password: hashedPassword,
@@ -38,15 +38,15 @@ const getAllUsers = async (req, res) => {
         isAdmin: true,
         isActive: true
       });
-      
+
       await testUser.save();
       console.log('Test user created successfully');
-      
+
       // إعادة جلب المستخدمين
       const updatedUsers = await User.find({ isActive: true })
         .select('-password')
         .sort({ username: 1 });
-      
+
       res.json({
         users: updatedUsers,
         count: updatedUsers.length
@@ -119,7 +119,7 @@ const updateUsername = async (req, res) => {
 
     const { userId, newUsername } = req.body;
 
-    const existingUser = await User.findOne({ 
+    const existingUser = await User.findOne({
       username: newUsername,
       _id: { $ne: userId }
     });
@@ -155,6 +155,82 @@ const updateUsername = async (req, res) => {
     });
   }
 };
+
+// ====== تمت الإضافة هنا ======
+
+const updateUserEmail = async (req, res) => {
+  try {
+    const { userId, newEmail } = req.body;
+
+    const existingUser = await User.findOne({
+      email: newEmail,
+      _id: { $ne: userId }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: 'Email taken',
+        message: 'البريد الإلكتروني مستخدم بالفعل'
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'المستخدم غير موجود'
+      });
+    }
+
+    user.email = newEmail;
+    await user.save();
+
+    res.json({
+      message: 'تم تحديث البريد الإلكتروني بنجاح',
+      user: user.toJSON()
+    });
+
+  } catch (error) {
+    console.error('Update email error:', error);
+    res.status(500).json({
+      error: 'Failed to update email',
+      message: 'فشل في تحديث البريد الإلكتروني'
+    });
+  }
+};
+
+const updateUserPassword = async (req, res) => {
+  try {
+    const { userId, newPassword } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'المستخدم غير موجود'
+      });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({
+      message: 'تم تحديث كلمة المرور بنجاح'
+    });
+
+  } catch (error) {
+    console.error('Update password error:', error);
+    res.status(500).json({
+      error: 'Failed to update password',
+      message: 'فشل في تحديث كلمة المرور'
+    });
+  }
+};
+
+// ====== نهاية الإضافة ======
 
 const deleteUser = async (req, res) => {
   try {
@@ -194,6 +270,7 @@ const deleteUser = async (req, res) => {
     });
   }
 };
+
 
 const completeSystemReset = async (req, res) => {
   try {
@@ -544,13 +621,13 @@ exports.addDeduction = async (req, res) => {
     console.log('Received deduction request:', req.body);
     const { userId, amount, reason, date } = req.body;
     console.log('Parsed data:', { userId, amount, reason, date, types: { userId: typeof userId, amount: typeof amount, reason: typeof reason, date: typeof date } });
-    
+
     // تحويل البيانات إلى الأنواع الصحيحة
     const parsedAmount = parseFloat(amount);
     const trimmedReason = String(reason).trim();
-    
+
     console.log('Processed data:', { userId, parsedAmount, trimmedReason });
-    
+
     if (!userId || typeof userId !== 'string' || userId.length !== 24) {
       return res.status(400).json({
         error: 'Invalid userId',
@@ -569,7 +646,7 @@ exports.addDeduction = async (req, res) => {
         message: 'السبب غير صحيح'
       });
     }
-    
+
     // التحقق من وجود المستخدم
     const User = require('../models/User');
     const user = await User.findById(userId);
@@ -579,7 +656,7 @@ exports.addDeduction = async (req, res) => {
         message: 'المستخدم غير موجود'
       });
     }
-    
+
     const Deduction = require('../models/Deduction');
     const deduction = new Deduction({
       userId,
@@ -587,10 +664,10 @@ exports.addDeduction = async (req, res) => {
       reason: trimmedReason,
       date: date ? new Date(date) : new Date()
     });
-    
+
     console.log('Saving deduction:', deduction);
     await deduction.save();
-    
+
     console.log('Deduction saved successfully');
     res.json({
       message: 'تمت إضافة الخصمية بنجاح',
@@ -610,9 +687,9 @@ exports.updateUserAdvances = async (req, res) => {
   try {
     console.log('=== UPDATE USER ADVANCES DEBUG ===');
     console.log('Received request body:', req.body);
-    
+
     const { userId, advances } = req.body;
-    
+
     console.log('Parsed data:', { userId, advances, types: { userId: typeof userId, advances: typeof advances } });
 
     if (!userId || typeof userId !== 'string' || userId.length !== 24) {

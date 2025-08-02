@@ -5,6 +5,8 @@ const {
   getAllUsers,
   updateUserDeductions,
   updateUsername,
+  updateUserEmail,        // جديد
+  updateUserPassword,     // جديد
   deleteUser,
   completeSystemReset,
   getSystemStats,
@@ -36,7 +38,7 @@ const handleValidationErrors = (req, res, next) => {
   console.log('userId:', req.body?.userId, 'type:', typeof req.body?.userId);
   console.log('amount:', req.body?.amount, 'type:', typeof req.body?.amount);
   console.log('reason:', req.body?.reason, 'type:', typeof req.body?.reason);
-  
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     console.log('Validation errors:', errors.array());
@@ -69,6 +71,26 @@ const updateUsernameValidation = [
     .withMessage('اسم المستخدم يجب أن يكون بين 3 و 30 حرف')
     .matches(/^[a-zA-Z0-9_]+$/)
     .withMessage('اسم المستخدم يمكن أن يحتوي على أحرف وأرقام وشرطة سفلية فقط')
+];
+
+// جديد - Validation للإيميل
+const updateEmailValidation = [
+  body('userId')
+    .isMongoId()
+    .withMessage('معرف المستخدم غير صحيح'),
+  body('newEmail')
+    .isEmail()
+    .withMessage('البريد الإلكتروني غير صحيح')
+];
+
+// جديد - Validation للباسورد
+const updatePasswordValidation = [
+  body('userId')
+    .isMongoId()
+    .withMessage('معرف المستخدم غير صحيح'),
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('كلمة المرور يجب أن لا تقل عن 6 أحرف')
 ];
 
 const addDeductionValidation = [
@@ -107,10 +129,12 @@ const systemResetValidation = [
     .withMessage('نص التأكيد غير صحيح')
 ];
 
-
+// ===== Routes =====
 router.get('/users', getAllUsers);
 router.put('/users/deductions', updateDeductionsValidation, handleValidationErrors, updateUserDeductions);
 router.put('/users/username', updateUsernameValidation, handleValidationErrors, updateUsername);
+router.put('/users/email', updateEmailValidation, handleValidationErrors, updateUserEmail);       // جديد
+router.put('/users/password', updatePasswordValidation, handleValidationErrors, updateUserPassword); // جديد
 router.post('/users/deduction', addDeductionValidation, handleValidationErrors, addDeduction);
 router.put('/users/advances', updateUserAdvances);
 router.delete('/users/:userId', deleteUser);
