@@ -21,7 +21,6 @@ const allowedOrigins = [
   'https://frontend-daily-entries.vercel.app',
   'https://naif511.com',
   'https://my-backend-g008.onrender.com'  // ← أضف هذا
-
 ];
 
 // إعدادات CORS (يجب أن تكون في الأعلى وقبل أي راوتر)
@@ -185,7 +184,11 @@ app.listen(PORT, '0.0.0.0', () => {
   }
 
   if (process.env.MONGODB_URI) {
-    mongoose.connect(process.env.MONGODB_URI)
+    mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000 // 10 ثواني مهلة الاتصال
+    })
       .then(() => {
         console.log('✅ Connected to MongoDB');
       })
