@@ -187,7 +187,9 @@ app.listen(PORT, '0.0.0.0', () => {
     mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 10000 // 10 ثواني مهلة الاتصال
+      serverSelectionTimeoutMS: 10000,  // 10 ثواني مهلة اتصال
+      socketTimeoutMS: 45000,           // 45 ثانية مهلة اتصال الشبكة
+      connectTimeoutMS: 10000           // 10 ثواني مهلة الاتصال الأولي
     })
       .then(() => {
         console.log('✅ Connected to MongoDB');
