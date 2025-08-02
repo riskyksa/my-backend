@@ -185,8 +185,9 @@ app.listen(PORT, '0.0.0.0', () => {
 
   if (process.env.MONGODB_URI) {
     mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      // تحذير: هذه الخيارات أصبحت غير ضرورية مع الإصدارات الجديدة من Mongoose
+      //useNewUrlParser: true,
+      //useUnifiedTopology: true,
       serverSelectionTimeoutMS: 10000,  // 10 ثواني مهلة اتصال
       socketTimeoutMS: 45000,           // 45 ثانية مهلة اتصال الشبكة
       connectTimeoutMS: 10000           // 10 ثواني مهلة الاتصال الأولي
@@ -203,4 +204,24 @@ app.listen(PORT, '0.0.0.0', () => {
   }
 });
 
+// تسجيل أي خطأ غير ملتقط في التطبيق
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception thrown:', err);
+});
+
 module.exports = app;
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connection is open');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error detected:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB connection disconnected');
+});
