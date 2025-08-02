@@ -757,6 +757,8 @@ module.exports = {
   getAllUsers,
   updateUserDeductions,
   updateUsername,
+  updateUserEmail,
+  updateUserPassword,
   deleteUser,
   completeSystemReset,
   getSystemStats,
