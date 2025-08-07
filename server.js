@@ -24,35 +24,38 @@ const allowedOrigins = [
 ];
 
 // إعدادات CORS (يجب أن تكون في الأعلى وقبل أي راوتر)
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-  next();
-});
+app.use(cors());
+
+//app.use((req, res, next) => {
+//const origin = req.headers.origin;
+//if (allowedOrigins.includes(origin)) {
+//res.header('Access-Control-Allow-Origin', origin);
+//}
+//res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+//res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
+//if (req.method === 'OPTIONS') {
+//res.status(200).end();
+//return;
+//}
+//next();
+//});
 
 
 // إضافة الهيدرز المطلوبة لكل استجابة ومعالجة OPTIONS
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-  next();
-});
+// app.use((req, res, next) => {
+//   const origin = req.headers.origin;
+//   if (allowedOrigins.includes(origin)) {
+//     res.header('Access-Control-Allow-Origin', origin);
+//   }
+//   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+//   res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
+//   if (req.method === 'OPTIONS') {
+//     res.status(200).end();
+//     return;
+//   }
+//   next();
+// });
+
 
 // Debug middleware for all requests
 app.use((req, res, next) => {
