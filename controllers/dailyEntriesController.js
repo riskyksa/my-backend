@@ -86,13 +86,14 @@ exports.createDailyEntry = async (req, res) => {
         try {
           const filePath = path.join(process.env.UPLOAD_PATH || './uploads', attachment.filename);
           const fileExists = fs.existsSync(filePath);
-          
+
           console.log(`📁 File check: ${attachment.filename} - Exists: ${fileExists}`);
-          
+
           return {
-            ...attachment,
-            url: fileExists ? `${req.protocol}://${req.get('host')}/uploads/${attachment.filename}` : null,
-            fileExists
+            url: fileExists
+              ? `${process.env.PUBLIC_UPLOAD_URL || `${req.protocol}://${req.get('host')}`}/uploads/${attachment.filename}`
+              : null,
+
           };
         } catch (error) {
           console.error('Error checking file existence:', error);
@@ -123,7 +124,7 @@ exports.getDailyEntries = async (req, res) => {
   try {
     const { year, month, userId } = req.query;
     console.log('Getting daily entries with params:', { year, month, userId });
-    
+
     // التحقق من اتصال قاعدة البيانات
     if (mongoose.connection.readyState !== 1) {
       console.error('Database not connected');
@@ -132,7 +133,7 @@ exports.getDailyEntries = async (req, res) => {
         message: 'قاعدة البيانات غير متاحة'
       });
     }
-    
+
     const filter = {};
 
     if (userId) filter.userId = userId;
@@ -146,7 +147,7 @@ exports.getDailyEntries = async (req, res) => {
     console.log('Filter:', filter);
     const entries = await DailyEntry.find(filter).sort({ date: 1 });
     console.log(`Found ${entries.length} entries`);
-    
+
     // إضافة URL للصور
     const entriesWithUrls = entries.map(entry => {
       const entryObj = entry.toObject();
@@ -156,13 +157,14 @@ exports.getDailyEntries = async (req, res) => {
           try {
             const filePath = path.join(process.env.UPLOAD_PATH || './uploads', attachment.filename);
             const fileExists = fs.existsSync(filePath);
-            
+
             console.log(`📁 File check: ${attachment.filename} - Exists: ${fileExists}`);
-            
+
             return {
-              ...attachment,
-              url: fileExists ? `${req.protocol}://${req.get('host')}/uploads/${attachment.filename}` : null,
-              fileExists
+              url: fileExists
+                ? `${process.env.PUBLIC_UPLOAD_URL || `${req.protocol}://${req.get('host')}`}/uploads/${attachment.filename}`
+                : null,
+
             };
           } catch (error) {
             console.error('Error checking file existence:', error);
@@ -176,20 +178,20 @@ exports.getDailyEntries = async (req, res) => {
       }
       return entryObj;
     });
-    
+
     // إضافة headers لمنع الكاش
     res.set({
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0'
     });
-    
+
     res.json({ entries: entriesWithUrls });
   } catch (error) {
     console.error('Get daily entries error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to get daily entries',
-      message: error.message 
+      message: error.message
     });
   }
 };
@@ -199,7 +201,7 @@ exports.getMonthlyAdvances = async (req, res) => {
     const { yearMonth, userId } = req.query;
     console.log('=== GET MONTHLY ADVANCES DEBUG ===');
     console.log('Getting monthly advances with params:', { yearMonth, userId });
-    
+
     // التحقق من اتصال قاعدة البيانات
     if (mongoose.connection.readyState !== 1) {
       console.error('Database not connected');
@@ -208,28 +210,28 @@ exports.getMonthlyAdvances = async (req, res) => {
         message: 'قاعدة البيانات غير متاحة'
       });
     }
-    
+
     if (!yearMonth || !userId) {
       return res.status(400).json({ message: 'yearMonth and userId are required' });
     }
-    
+
     const advances = await MonthlyAdvance.find({ userId, yearMonth });
     console.log(`Found ${advances.length} advances for user ${userId} in ${yearMonth}`);
     console.log('Advances data:', advances);
-    
+
     // إضافة headers لمنع الكاش
     res.set({
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0'
     });
-    
+
     res.json({ advances });
   } catch (error) {
     console.error('Get monthly advances error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Failed to get monthly advances',
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -267,7 +269,7 @@ exports.deleteDailyEntry = async (req, res) => {
     if (!entry) {
       return res.status(404).json({ message: 'المدخل غير موجود' });
     }
-     await DailyEntry.findByIdAndDelete(entryId);
+    await DailyEntry.findByIdAndDelete(entryId);
     res.json({ message: 'تم حذف المدخل بنجاح' });
   } catch (error) {
     console.error('Error deleting daily entry:', error);
@@ -328,7 +330,7 @@ exports.updateDailyEntry = async (req, res) => {
     }
 
     await entry.save();
-    
+
     // إضافة URL للصور
     const entryWithUrls = entry.toObject();
     if (entryWithUrls.attachments) {
@@ -337,13 +339,14 @@ exports.updateDailyEntry = async (req, res) => {
         try {
           const filePath = path.join(process.env.UPLOAD_PATH || './uploads', attachment.filename);
           const fileExists = fs.existsSync(filePath);
-          
+
           console.log(`📁 File check: ${attachment.filename} - Exists: ${fileExists}`);
-          
+
           return {
-            ...attachment,
-            url: fileExists ? `${req.protocol}://${req.get('host')}/uploads/${attachment.filename}` : null,
-            fileExists
+            url: fileExists
+              ? `${process.env.PUBLIC_UPLOAD_URL || `${req.protocol}://${req.get('host')}`}/uploads/${attachment.filename}`
+              : null,
+
           };
         } catch (error) {
           console.error('Error checking file existence:', error);
@@ -355,7 +358,7 @@ exports.updateDailyEntry = async (req, res) => {
         }
       });
     }
-    
+
     res.json({ message: 'تم تحديث المدخل بنجاح', entry: entryWithUrls });
   } catch (error) {
     console.error('Error updating daily entry:', error);
@@ -367,7 +370,7 @@ exports.getDeductions = async (req, res) => {
   try {
     const { userId, year, month } = req.query;
     console.log('Getting deductions with params:', { userId, year, month });
-    
+
     // التحقق من اتصال قاعدة البيانات
     if (mongoose.connection.readyState !== 1) {
       console.error('Database not connected');
@@ -376,7 +379,7 @@ exports.getDeductions = async (req, res) => {
         message: 'قاعدة البيانات غير متاحة'
       });
     }
-    
+
     const filter = {};
 
     if (userId) filter.userId = userId;
@@ -393,20 +396,20 @@ exports.getDeductions = async (req, res) => {
       .populate('userId', 'username');
 
     console.log(`Found ${deductions.length} deductions`);
-    
+
     // إضافة headers لمنع الكاش
     res.set({
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0'
     });
-    
+
     res.json({ entries: deductions });
   } catch (error) {
     console.error('Get deductions error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to get deductions',
-      message: error.message 
+      message: error.message
     });
   }
 };
